@@ -1,5 +1,5 @@
 # FROM ghcr.io/feelpp/feelpp:v0.110.2-focal
-FROM ghcr.io/feelpp/feelpp:v0.111.0-preview.8-bullseye
+FROM ghcr.io/feelpp/feelpp:v0.111.0-alpha.5-bullseye
 
 USER root
 
