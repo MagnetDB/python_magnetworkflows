@@ -56,7 +56,7 @@ def compute_error(
     parameters: all jsonmodel parameters
     dict_df:
     """
-    if e.isMasterRank:
+    if e.isMasterRank():
         print(f"compute_error: it={it}, targets={targets},  ", flush=True)
 
     table_ = [it]
@@ -79,6 +79,7 @@ def compute_error(
         filtered_df = getTarget(targets, target, e, args.debug)
 
         relax = float(values["relax"])
+        fuzzy = float(values["fuzzy"])
 
         # TODO: add stats for filtered_df to table_: mean, ecart type, min/max??
 
@@ -101,9 +102,12 @@ def compute_error(
         )
 
         for param in params[target]:
-            marker = param.replace(
-                "U_", ""
-            )  # get name from values['control_params'] / change control_params to a list of dict?
+            if f.mesh().dimension() == 3:
+                marker = "V1"
+            else:
+                marker = param.replace(
+                    "U_", ""
+                )  # get name from values['control_params'] / change control_params to a list of dict?
             val = filtered_df[marker].iloc[-1]
             ovalue = parameters[param]
             table_.append(ovalue)
@@ -167,13 +171,31 @@ def compute_error(
         for key in ["statsT", "statsTH"]:
             for param in postvalues[target][key]:
                 name = param["name"]
-                if args.debug:
+                if args.debug and e.isMasterRank():
                     print(f"{target}: postvalues_params {name}", flush=True)
 
                 if "csv" in param:
                     dict_df[target][key][name] = getTarget(
                         {f"{name}": param}, name, e, args.debug
                     )
+        if "thmagel" in args.cfgfile:
+            for key in [
+                "statsDispl",
+                "statsStress",
+                "statsDisplH",
+                "statsStressH",
+                "statsVonMises",
+                "statsVonMisesH",
+            ]:
+                for param in postvalues[target][key]:
+                    name = param["name"]
+                    if args.debug and e.isMasterRank():
+                        print(f"{target}: postvalues_params {name}", flush=True)
+
+                    if "csv" in param:
+                        dict_df[target][key][name] = getTarget(
+                            {f"{name}": param}, name, e, args.debug
+                        )
 
         # perform natsort on dataframe and list
         for key, values_ in dict_df[target].items():
@@ -420,6 +442,7 @@ def compute_error(
                                 dPressure,
                                 model=args.heatcorrelation,
                                 friction=args.friction,
+                                fuzzy=fuzzy,
                             )
                             if e.isMasterRank():
                                 print(
@@ -436,6 +459,7 @@ def compute_error(
                         dPressure,
                         model=args.heatcorrelation,
                         friction=args.friction,
+                        fuzzy=fuzzy,
                     )
 
                     tmp_U, cf = Uw(
@@ -552,6 +576,7 @@ def compute_error(
                     dPressure,
                     model=args.heatcorrelation,
                     friction=args.friction,
+                    fuzzy=fuzzy,
                 )
                 # f.addParameterInModelProperties(p_params["dTw"][i], dTg)
                 # f.addParameterInModelProperties(p_params["hw"][i], hg)
