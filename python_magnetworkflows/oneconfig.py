@@ -1,10 +1,8 @@
 """
 Run feelpp model for one config
 """
-from typing import List
 
 import os
-import pandas as pd
 
 from .params import getparam
 from .solver import solve
@@ -40,46 +38,15 @@ def oneconfig(
     dict_df:
     e:
     """
+    comm = e.worldCommPtr()
 
     if e.isMasterRank():
         print("\n\nONECONFIG START", flush=True)
-
-    table_values = []
-    table_headers = []
 
     # pwd = os.getcwd()
     basedir = os.path.dirname(args.cfgfile)
     if e.isMasterRank():
         print(f"oneconfig: jsonmodel={jsonmodel}, basedir={basedir}", flush=True)
-
-    dict_df = {}
-    for target, values in targets.items():
-        if e.isMasterRank():
-            print(f"{target}: {values['objectif']}")
-        table_values.append(float(values["objectif"]))
-        table_headers.append(f'{target}[{values["unit"]}]')
-        dict_df[target] = {
-            "PowerM": pd.DataFrame(),
-            "PowerH": pd.DataFrame(),
-            "Flux": pd.DataFrame(),
-            "HeatCoeff": pd.DataFrame(),
-            "DT": pd.DataFrame(),
-            "statsT": {
-                "MinT": pd.DataFrame(),
-                "MaxT": pd.DataFrame(),
-                "MeanT": pd.DataFrame(),
-            },
-            "statsTH": {
-                "MinTH": pd.DataFrame(),
-                "MaxTH": pd.DataFrame(),
-                "MeanTH": pd.DataFrame(),
-            },
-            "target": float(values["objectif"]),
-            "flow": 0,
-            "Tout": 0,
-            "Uw": pd.DataFrame(),
-            "L": float(values["inductance"]),
-        }
 
     # capture actual params per target:
     params = {}
@@ -90,7 +57,9 @@ def oneconfig(
                 print(f"extract control params for {p[0]}")
             tmp = getparam(p[0], parameters, p[1], args.debug)
             params[key] += tmp
+            # print(f"params[{key}]={params[key]}, rank={comm.localRank()}", flush=True)
 
+    # e.worldComm().barrier()
     (table, dict_df, e) = solve(
         fname,
         e,
@@ -104,30 +73,10 @@ def oneconfig(
         postvalues,
         params,
         parameters,
-        dict_df,
     )
 
-    if e.isMasterRank():
-        print("solve done")
+    if args.debug:
+        print(f"end of oneconfig, rank={comm.localRank()}")
 
-    for target, values in dict_df.items():
-        if args.debug and e.isMasterRank():
-            print(f"\n\nresult for {target}:", flush=True)
-        for key, df in values.items():
-            if isinstance(df, pd.DataFrame):
-                if args.debug and e.isMasterRank():
-                    print(f"\t{key}:")
-                df["I"] = f'I={dict_df[target]["target"]}A'
-                df.set_index("I", inplace=True)
-                if args.debug and e.isMasterRank():
-                    print(df)
-                # df.to_markdown(tablefmt="psql") # requires pqndqs >= 1.0.0
-            if key in ["statsT", "statsTH"]:
-                for keyT, dfT in df.items():
-                    dfT["I"] = f'{keyT}_I={dict_df[target]["target"]}A'
-                    dfT.set_index("I", inplace=True)
-
-    if e.isMasterRank():
-        print("end of oneconfig")
     e.worldComm().barrier()
     return (table, dict_df, e)

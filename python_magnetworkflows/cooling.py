@@ -1,6 +1,7 @@
 """
 Cooling Models
 """
+
 from typing import List
 from math import exp, log, log10, sqrt
 
@@ -15,63 +16,70 @@ def steam(Tw: float, P: float):
     P: Pressure in Bar
     """
     Mpa = 0.1 * P
+    # print(f"steam: {Mpa} MPa, {Tw} K", flush=True)
+    # _steam = IAPWS97(P=Mpa, T=Tw)
+    # print(f"_steam: rho={_steam.rho}, cp={_steam.cp* 1.0e3}", flush=True)
     return IAPWS97(P=Mpa, T=Tw)
 
 
-def rho(Tw: float, P: float) -> float:
-    """
-    compute water volumic mass in ???
+# def rho(Tw: float, P: float) -> float:
+#     """
+#     compute water volumic mass in ???
 
-    Tw: Temperature in Kelvin
-    P: Pressure in Bar
-    """
-    Mpa = 0.1 * P
-    Steam = IAPWS97(P=Mpa, T=Tw)
-    # print(f"rho({Mpa} MPa, {Tw} K)={Steam.rho}")
-    return Steam.rho
+#     Tw: Temperature in Kelvin
+#     P: Pressure in Bar
+#     """
+#     Mpa = 0.1 * P
+#     Steam = IAPWS97(P=Mpa, T=Tw)
+#     # print(f"rho({Mpa} MPa, {Tw} K)={Steam.rho}")
+#     return Steam.rho
 
+# def Cp(Tw: float, P: float) -> float:
+#     """
+#     compute water specific heat in ???kJ/kg·K
 
-def Cp(Tw: float, P: float) -> float:
-    """
-    compute water specific heat in ???kJ/kg·K
+#     Tw: Temperature in Kelvin
+#     P: Pressure in Bar
+#     """
+#     Mpa = 0.1 * P
+#     Steam = IAPWS97(P=Mpa, T=Tw)
+#     # print(f"Cp({Mpa} MPa, {Tw} K)={Steam.cp} kJ/kg·K")
+#     return Steam.cp * 1.0e3  # watch out units
 
-    Tw: Temperature in Kelvin
-    P: Pressure in Bar
-    """
-    Mpa = 0.1 * P
-    Steam = IAPWS97(P=Mpa, T=Tw)
-    # print(f"Cp({Mpa} MPa, {Tw} K)={Steam.cp} kJ/kg·K")
-    return Steam.cp * 1.0e3  # watch out units
+# def viscosity(Tw: float, P: float) -> float:
+#     """
+#     compute water viscosity in ??
 
+#     Tw: Temperature in Kelvin
+#     P: Pressure in Bar
+#     """
+#     Mpa = 0.1 * P
+#     Steam = IAPWS97(P=Mpa, T=Tw)
+#     # print(f"mu({Mpa} MPa, {Tw} K)={Steam.mu}")
+#     return Steam.mu
 
-def viscosity(Tw: float, P: float) -> float:
-    """
-    compute water viscosity in ??
+# def k(Tw: float, P: float) -> float:
+#     """
+#     compute water heat conductivity in ??
 
-    Tw: Temperature in Kelvin
-    P: Pressure in Bar
-    """
-    Mpa = 0.1 * P
-    Steam = IAPWS97(P=Mpa, T=Tw)
-    # print(f"mu({Mpa} MPa, {Tw} K)={Steam.mu}")
-    return Steam.mu
-
-
-def k(Tw: float, P: float) -> float:
-    """
-    compute water heat conductivity in ??
-
-    Tw: Temperature in Kelvin
-    P: Pressure in Bar
-    """
-    Mpa = 0.1 * P
-    Steam = IAPWS97(P=Mpa, T=Tw)
-    # print(f"k({Mpa} MPa, {Tw} K)={Steam.k}")
-    return Steam.k
+#     Tw: Temperature in Kelvin
+#     P: Pressure in Bar
+#     """
+#     Mpa = 0.1 * P
+#     Steam = IAPWS97(P=Mpa, T=Tw)
+#     # print(f"k({Mpa} MPa, {Tw} K)={Steam.k}")
+#     return Steam.k
 
 
 def Montgomery(
-    Tw: float, Pw: float, dPw: float, U: float, Dh: float, L: float, friction: str
+    Tw: float,
+    Pw: float,
+    dPw: float,
+    U: float,
+    Dh: float,
+    L: float,
+    friction: str,
+    fuzzy: float = 1.0,
 ) -> float:
     """
     compute heat exchange coefficient in ??
@@ -85,7 +93,7 @@ def Montgomery(
     HMFL introduce an additional fuzzy factor
     """
 
-    fuzzy = 1.7
+    # fuzzy = 1.7
     h = (
         fuzzy
         * 1426.404
@@ -98,7 +106,14 @@ def Montgomery(
 
 
 def Dittus(
-    Tw: float, Pw: float, dPw: float, U: float, Dh: float, L: float, friction: str
+    Tw: float,
+    Pw: float,
+    dPw: float,
+    U: float,
+    Dh: float,
+    L: float,
+    friction: str,
+    fuzzy: str = 1.0,
 ) -> float:
     params = (0.023, 0.8, 0.4)
     h = hcorrelation(params, Tw, Pw, dPw, U, Dh, L, friction, "Dittus")
@@ -106,7 +121,14 @@ def Dittus(
 
 
 def Colburn(
-    Tw: float, Pw: float, dPw: float, U: float, Dh: float, L: float, friction: str
+    Tw: float,
+    Pw: float,
+    dPw: float,
+    U: float,
+    Dh: float,
+    L: float,
+    friction: str,
+    fuzzy: str = 1.0,
 ) -> float:
     params = (0.023, 0.8, 0.3)
     h = hcorrelation(params, Tw, Pw, dPw, U, Dh, L, friction, "Colburn")
@@ -114,7 +136,14 @@ def Colburn(
 
 
 def Silverberg(
-    Tw: float, Pw: float, dPw: float, U: float, Dh: float, L: float, friction: str
+    Tw: float,
+    Pw: float,
+    dPw: float,
+    U: float,
+    Dh: float,
+    L: float,
+    friction: str,
+    fuzzy: str = 1.0,
 ) -> float:
     params = (0.015, 0.85, 0.3)
     h = hcorrelation(params, Tw, Pw, dPw, U, Dh, L, friction, "Silverberg")
@@ -212,8 +241,7 @@ def Swanee(Re: float, Dh: float, f: float, rugosity: float) -> float:
 
 
 def Uw(
-    Tw: float,
-    Pw: float,
+    Steam,
     dPw: float,
     Dh: float,
     L: float,
@@ -244,11 +272,11 @@ def Uw(
     max_err_U = 1.0e-3
     max_err_f = 1.0e-3
     while it < 10:
-        Re = Reynolds(Tw, Pw, U, Dh, L)
+        Re = Reynolds(Steam, U, Dh, L)
         nf = friction_method[friction](Re, Dh, f, rugosity)
 
         dPw_Pascal = dPw * 1.0e5
-        nU = sqrt(2 * dPw_Pascal / (rho(Tw, Pw) * (Pextra + nf * L / Dh)))  # Faux!!!
+        nU = sqrt(2 * dPw_Pascal / (Steam.rho * (Pextra + nf * L / Dh)))  # Faux!!!
         error_U = abs(1 - nU / U)
         error_f = abs(1 - nf / f)
         # print(
@@ -262,29 +290,32 @@ def Uw(
             isOk = True
             break
 
-    print(f"Uw={U:.3f}, Cf={f:.3e} ({friction}), rugosity={rugosity:.3e}, Re={Re:.3f}")
+    # print(f"Uw={U:.3f}, Cf={f:.3e} ({friction}), rugosity={rugosity:.3e}, Re={Re:.3f}")
     if isOk != True:
         raise RuntimeError(f"Uw: max it reached")
     return U, f
 
 
-def Nusselt(params: tuple, Tw: float, Pw: float) -> float:
+def Nusselt(params: tuple, Re: float, Pr: float) -> float:
+    """Compute Nusselt nb from Reynolds (Re) and Prandtl (Pr)"""
     (alpha, n, m) = params
-    Re = Reynolds()
-    Pr = Prandlt()
     Nu = alpha * exp(log(Re) * n) * exp(log(Pr) * m)
     # print(f"Nu={Nu}, Pr={Pr}, Re={Re}")
-    return Re
+    return Nu
 
 
-def Reynolds(Tw: float, Pw: float, U: float, Dh: float, L: float) -> float:
-    Re = rho(Tw, Pw) * U * Dh / viscosity(Tw, Pw)
+def Reynolds(Steam, U: float, Dh: float, L: float) -> float:
+    """Compute Reynolds as Re = rho*U*Dh/mu"""
+    Re = Steam.rho * U * Dh / Steam.mu
     # print(f"Re={Re}")
     return Re
 
 
-def Prandlt(Tw: float, Pw: float) -> float:
-    Pr = viscosity(Tw, Pw) * Cp(Tw, Pw) / k(Tw, Pw)
+def Prandlt(
+    Steam,
+) -> float:
+    """Compute Prandlt as Pr = mu*cp/k"""
+    Pr = Steam.mu * Steam.cp * 1.0e3 / Steam.k
     # print(f"Pr={Pr}")
     return Pr
 
@@ -316,9 +347,9 @@ def hcorrelation(
     """
 
     (alpha, n, m) = params
+    Steam = steam(Tw, Pw)
     nU = Uw(
-        Tw,
-        Pw,
+        Steam,
         dPw,
         Dh,
         L,
@@ -329,11 +360,15 @@ def hcorrelation(
         rugosity=rugosity,
     )
 
-    Re = Reynolds(Tw, Pw, nU, Dh, L)
-    Pr = Prandlt(Tw, Pw)
+    Re = Reynolds(Steam, nU, Dh, L)
+    Pr = Prandlt(Steam)
 
     h = alpha * exp(log(Re) * n) * exp(log(Pr) * m) / Dh
-    print(f"hcorrelation({model}): friction={friction}, h={h}, Pr={Pr}, Re={Re}")
+    # print(f"hcorrelation({model}): friction={friction}, h={h}, Pr={Pr}, Re={Re}")
+    del Steam
+    del nU
+    del Re
+    del Pr
     return h
 
 
@@ -341,7 +376,10 @@ def getDT(flow: float, Power: float, Tw: float, P: float) -> float:
     """
     compute dT as Power / rho *Cp * Flow(I)
     """
-    return Power / (rho(Tw, P) * Cp(Tw, P) * flow)
+    Steam = steam(Tw, P)
+    _DT = Power / (Steam.rho * Steam.cp * 1.0e3 * flow)
+    del Steam
+    return _DT
 
 
 def getHeatCoeff(
@@ -353,6 +391,7 @@ def getHeatCoeff(
     dPw: float,
     model: str = "Montgomery",
     friction: str = "Constant",
+    fuzzy: float = 1.0,
 ):
     correlation = {
         "Montgomery": Montgomery,
@@ -361,7 +400,7 @@ def getHeatCoeff(
         "Silverberg": Silverberg,
     }
 
-    return correlation[model](Tw, Pw, dPw, U, Dh, L, friction)
+    return correlation[model](Tw, Pw, dPw, U, Dh, L, friction, fuzzy)
 
 
 def getTout(
