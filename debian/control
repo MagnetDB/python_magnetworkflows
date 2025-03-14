@@ -19,7 +19,10 @@ Depends: ${python3:Depends}, ${misc:Depends},
  python3-natsort,
  python3-pandas,
  python3-pint,
+ python3-numpy,
+ python3-scipy,
  python3-tabulate,
+ python3-iapws,
  python3-feelpp,
  python3-feelpp-toolboxes,
  python3-feelpp-toolboxes-core,
@@ -28,7 +31,7 @@ Depends: ${python3:Depends}, ${misc:Depends},
  python3-feelpp-toolboxes-thermoelectric,
  python3-feelpp-toolboxes-solid
 Suggests: python-python-magnetworkflows-doc
-Description: Magnet Workflowsmetry Python module (Python 3)
+Description: Magnet Workflows Python module (Python 3)
  This module provides basic simulation workflows
  .
  This package installs the library for Python 3.
