@@ -1,1 +1,1 @@
-"""Workflows for Python Magnet SetUp."""
+"""Workflows for Python Magnet Workflows."""

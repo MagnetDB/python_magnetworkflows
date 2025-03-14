@@ -83,7 +83,7 @@ def main():
         for cooling in args.coolings:
             f.write(f"# Cooling={cooling}\n")
             f.write(
-                f"perl -pi -e 's|mesh.filename=.*|mesh.filename=\{meshmodel}_p{args.np}.json|' {basedir}/{cooling}/{cfgfile};\n\n"
+                f"perl -pi -e 's|mesh.filename=.*|mesh.filename={meshmodel}_p{args.np}.json|' {basedir}/{cooling}/{cfgfile};\n\n"
             )
 
             heatcorrelations = ["Montgomery"]
