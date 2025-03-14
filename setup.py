@@ -7,7 +7,7 @@ from setuptools import setup, find_packages
 with open('README.md') as readme_file:
     readme = readme_file.read()
 
-requirements = [ 'pandas', 'pint', 'tabulate', 'feelpp', 'feelpp-toolboxes', 'feelpp-toolboxes-core', 'feelpp-toolboxes-coefficientformpdes', ]
+requirements = [ 'iapws', 'pandas', 'numpy', 'scipy', 'pint', 'tabulate', 'natsort', 'feelpp', 'feelpp-toolboxes', 'feelpp-toolboxes-core', 'feelpp-toolboxes-coefficientformpdes', ]
 
 setup_requirements = [ ]
 

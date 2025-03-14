@@ -29,7 +29,7 @@ def options(description: str, epilog: str):
     define options
     """
 
-    command_line = None
+    # command_line = None
     parser = argparse.ArgumentParser(description=description, epilog=epilog)
     parser.add_argument("cfgfile", help="input cfg file (ex. HL-31.cfg)")
 
@@ -918,7 +918,7 @@ def exportResults(
             table_final[f"{prefix}L[H]"] = dict_df[target]["L"]
 
     if not global_df:
-        outdir = f"U.measures"
+        outdir = "U.measures"
         os.makedirs(outdir, exist_ok=True)
         table.to_csv(f"{outdir}/values.csv", index=False)
 
@@ -942,7 +942,7 @@ def exportResults(
 
     table_final.set_index("measures", inplace=True)
     if suffix is None:
-        table_final.T.to_csv(f"measures.csv", index=True)
+        table_final.T.to_csv("measures.csv", index=True)
     else:
         table_final.T.to_csv(f"measures{suffix}.csv", index=True)
 

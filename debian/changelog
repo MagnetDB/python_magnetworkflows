@@ -1,3 +1,57 @@
+python-magnetworkflows (0.1.0-10) UNRELEASED; urgency=medium
+
+  * up 
+
+ -- Christophe Trophime <christophe.trophime@lncmi.cnrs.fr>  Thu, 06 Feb 2025 10:50:37 +0100
+
+python-magnetworkflows (0.1.0-9) unstable; urgency=medium
+
+  * up to git rev  e683c625700
+
+ -- Christophe Trophime <christophe.trophime@lncmi.cnrs.fr>  Fri, 15 Mar 2024 10:22:54 +0100
+
+python-magnetworkflows (0.1.0-8) unstable; urgency=medium
+
+  * up to git rev bff9e05e87a3cb3 branch refactor
+
+ -- Christophe Trophime <christophe.trophime@lncmi.cnrs.fr>  Thu, 26 Oct 2023 13:41:29 +0200
+
+python-magnetworkflows (0.1.0-7) unstable; urgency=medium
+
+  * up to git rev 7637442 
+
+ -- Christophe Trophime <christophe.trophime@lncmi.cnrs.fr>  Thu, 19 Jan 2023 07:53:03 +0100
+
+python-magnetworkflows (0.1.0-6) unstable; urgency=medium
+
+  * update to git rev 69f1203
+
+ -- Christophe Trophime <christophe.trophime@lncmi.cnrs.fr>  Wed, 18 Jan 2023 16:15:31 +0100
+
+python-magnetworkflows (0.1.0-5) unstable; urgency=medium
+
+  * d/pathes: fix F0 param
+
+ -- Christophe Trophime <christophe.trophime@lncmi.cnrs.fr>  Fri, 16 Dec 2022 16:58:19 +0100
+
+python-magnetworkflows (0.1.0-4) unstable; urgency=medium
+
+  * d/patches: fix typo
+
+ -- Christophe Trophime <christophe.trophime@lncmi.cnrs.fr>  Fri, 16 Dec 2022 16:42:57 +0100
+
+python-magnetworkflows (0.1.0-3) unstable; urgency=medium
+
+  * d/patches: fix current
+
+ -- Christophe Trophime <christophe.trophime@lncmi.cnrs.fr>  Fri, 16 Dec 2022 16:00:59 +0100
+
+python-magnetworkflows (0.1.0-2) unstable; urgency=medium
+
+  * up with refactor branch
+
+ -- Christophe Trophime <christophe.trophime@lncmi.cnrs.fr>  Fri, 31 Jan 2025 15:25:37 +0100
+
 python-magnetworkflows (0.1.0-1) unstable; urgency=medium
 
   * Initial release (Closes: #nnnn) 
