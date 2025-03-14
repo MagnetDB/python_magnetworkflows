@@ -13,11 +13,33 @@ authors = ["Christophe Trophime <christophe.trophime@lncmi.cnrs.fr>",
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "^3.8"
-pandas = "*"
-pint = "*"
-tabulate = "*"
+python = "^3.11"
+numpy = "^2.2.1"
+scipy = "^1.14.0"
+tabulate = "^0.9.0"
+nlopt = "^2.7.0"
+python-decouple = "^3.6"
+requests = "^2.27.1"
+natsort = "^7.1.1"
+pandas = "^2.2.1"
+iapws = "^1.4.0"
+statsmodels = "^0.13.0"
+matplotlib = "^3.5.1"
+seaborn = "^0.11.2"
+Pint = "^0.17.1"
 feelpp = "^0.102.1"
 feelpp-toolboxes = "^0.102.1"
 feelpp-toolboxes-core = "^0.102.1"
 feelpp-toolboxes-coefficientformpdes = "^0.102.1"
+visidata = "^2.6.0"
+
+[tool.poetry.dev-dependencies]
+pytest = "^8.2.0" 
+
+[tool.poetry.pytest.ini_options]
+filterwarnings = [
+    "error",
+    "ignore::UserWarning",
+    # note the use of single quote below to denote "raw" strings in TOML
+    'ignore:function ham\(\) is deprecated:DeprecationWarning',
+]
