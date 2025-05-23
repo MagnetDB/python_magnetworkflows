@@ -114,9 +114,10 @@ def Dittus(
     L: float,
     friction: str,
     fuzzy: str = 1.0,
+    pextra: float = 1
 ) -> float:
     params = (0.023, 0.8, 0.4)
-    h = hcorrelation(params, Tw, Pw, dPw, U, Dh, L, friction, "Dittus")
+    h = hcorrelation(params, Tw, Pw, dPw, U, Dh, L, friction, pextra, "Dittus")
     return h
 
 
@@ -129,9 +130,10 @@ def Colburn(
     L: float,
     friction: str,
     fuzzy: str = 1.0,
+    pextra: float = 1,
 ) -> float:
     params = (0.023, 0.8, 0.3)
-    h = hcorrelation(params, Tw, Pw, dPw, U, Dh, L, friction, "Colburn")
+    h = hcorrelation(params, Tw, Pw, dPw, U, Dh, L, friction, pextra, "Colburn")
     return h
 
 
@@ -144,9 +146,10 @@ def Silverberg(
     L: float,
     friction: str,
     fuzzy: str = 1.0,
+    pextra: float = 1,
 ) -> float:
     params = (0.015, 0.85, 0.3)
-    h = hcorrelation(params, Tw, Pw, dPw, U, Dh, L, friction, "Silverberg")
+    h = hcorrelation(params, Tw, Pw, dPw, U, Dh, L, friction, pextra, "Silverberg")
     return h
 
 
@@ -329,6 +332,7 @@ def hcorrelation(
     Dh: float,
     L: float,
     friction: str = "Constant",
+    pextra: float = 1,
     model: str = "Montgomery",
     rugosity: float = 0.012e-3,
 ) -> float:
@@ -392,6 +396,7 @@ def getHeatCoeff(
     model: str = "Montgomery",
     friction: str = "Constant",
     fuzzy: float = 1.0,
+    pextra: float = 1,
 ):
     correlation = {
         "Montgomery": Montgomery,
@@ -400,7 +405,7 @@ def getHeatCoeff(
         "Silverberg": Silverberg,
     }
 
-    return correlation[model](Tw, Pw, dPw, U, Dh, L, friction, fuzzy)
+    return correlation[model](Tw, Pw, dPw, U, Dh, L, friction, fuzzy, pextra)
 
 
 def getTout(

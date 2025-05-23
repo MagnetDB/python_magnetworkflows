@@ -59,6 +59,12 @@ def options(description: str, epilog: str):
         default="Constant",
     )
     parser.add_argument(
+        "--pextra",
+        help="specify head lossses (default: 1)",
+        type=float,
+        default=1,
+    )
+    parser.add_argument(
         "--eps",
         help="specify requested tolerance (default: 1.e-3)",
         type=float,

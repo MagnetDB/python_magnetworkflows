@@ -513,6 +513,7 @@ def compute_error(
                                 model=args.heatcorrelation,
                                 friction=args.friction,
                                 fuzzy=fuzzy,
+                                pextra=args.pextra
                             )
                             if args.debug:
                                 print(
@@ -530,6 +531,7 @@ def compute_error(
                         model=args.heatcorrelation,
                         friction=args.friction,
                         fuzzy=fuzzy,
+                        pextra=args.pextra
                     )
                     Steam = steam(tmp_Twh + tmp_dTwi / 2.0, Pressure)
                     tmp_U, cf = Uw(
@@ -663,7 +665,7 @@ def compute_error(
                     dPressure,
                     model=args.heatcorrelation,
                     friction=args.friction,
-                    fuzzy=fuzzy,
+                    fuzzy=fuzzy,pextra=args.pextra
                 )
                 # f.addParameterInModelProperties(p_params["dTw"][i], dTg)
                 # f.addParameterInModelProperties(p_params["hw"][i], hg)
