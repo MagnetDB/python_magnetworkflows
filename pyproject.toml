@@ -1,45 +1,72 @@
-[tool]
-[tool.poetry]
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
 name = "python_magnetworkflows"
 version = "0.1.0"
 description = "Python Magnet Workflows"
-license = "MIT license"
-keywords = ["python__magnetworkflows"]
-classifiers = ["Development Status :: 2 - Pre-Alpha", "Intended Audience :: Developers", "License :: OSI Approved :: MIT License", "Natural Language :: English", "Programming Language :: Python :: 3", "Programming Language :: Python :: 3.5", "Programming Language :: Python :: 3.6", "Programming Language :: Python :: 3.7", "Programming Language :: Python :: 3.8"]
-homepage = "https://github.com/Trophime/python_magnetworkflows"
-authors = ["Christophe Trophime <christophe.trophime@lncmi.cnrs.fr>",
-           "Romain Vallet <romain.vallet@lncmi.cnrs.fr>",
-           "Jeremie Muzet <jeremie.muzet@lncmi.cnrs.fr>"]
 readme = "README.md"
+license = {text = "MIT"}
+keywords = ["python_magnetworkflows"]
+authors = [
+    {name = "Christophe Trophime", email = "christophe.trophime@lncmi.cnrs.fr"},
+    {name = "Romain Vallet", email = "romain.vallet@lncmi.cnrs.fr"},
+    {name = "Jeremie Muzet", email = "jeremie.muzet@lncmi.cnrs.fr"},
+]
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Natural Language :: English",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+requires-python = ">=3.11"
+dependencies = [
+    "numpy>=2.2.1",
+    "scipy>=1.14.0",
+    "tabulate>=0.9.0",
+    "nlopt>=2.7.0",
+    "python-decouple>=3.6",
+    "requests>=2.27.1",
+    "natsort>=7.1.1",
+    "pandas>=2.2.1",
+    "iapws>=1.4.0",
+    "statsmodels>=0.13.0",
+    "matplotlib>=3.5.1",
+    "seaborn>=0.11.2",
+    "Pint>=0.17.1",
+    "feelpp>=0.102.1",
+    "feelpp-toolboxes>=0.102.1",
+    "feelpp-toolboxes-core>=0.102.1",
+    "feelpp-toolboxes-coefficientformpdes>=0.102.1",
+    "visidata>=2.6.0",
+]
 
-[tool.poetry.dependencies]
-python = "^3.11"
-numpy = "^2.2.1"
-scipy = "^1.14.0"
-tabulate = "^0.9.0"
-nlopt = "^2.7.0"
-python-decouple = "^3.6"
-requests = "^2.27.1"
-natsort = "^7.1.1"
-pandas = "^2.2.1"
-iapws = "^1.4.0"
-statsmodels = "^0.13.0"
-matplotlib = "^3.5.1"
-seaborn = "^0.11.2"
-Pint = "^0.17.1"
-feelpp = "^0.102.1"
-feelpp-toolboxes = "^0.102.1"
-feelpp-toolboxes-core = "^0.102.1"
-feelpp-toolboxes-coefficientformpdes = "^0.102.1"
-visidata = "^2.6.0"
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.2.0",
+]
 
-[tool.poetry.dev-dependencies]
-pytest = "^8.2.0" 
+[project.urls]
+Homepage = "https://github.com/MagnetDB/python_magnetworkflows"
+Repository = "https://github.com/MagnetDB/python_magnetworkflows"
 
-[tool.poetry.pytest.ini_options]
+[project.scripts]
+python_magnetworkflows = "python_magnetworkflows.cli:main"
+
+[tool.setuptools]
+packages = ["python_magnetworkflows"]
+
+[tool.setuptools.package-data]
+python_magnetworkflows = ["**"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
 filterwarnings = [
     "error",
     "ignore::UserWarning",
-    # note the use of single quote below to denote "raw" strings in TOML
-    'ignore:function ham\(\) is deprecated:DeprecationWarning',
+    "ignore:function ham\\(\\) is deprecated:DeprecationWarning",
 ]
