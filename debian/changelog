@@ -1,6 +1,8 @@
-python-magnetworkflows (0.1.0-10) UNRELEASED; urgency=medium
+python-magnetworkflows (0.1.0-10) unstable; urgency=medium
 
-  * up 
+  * Update for Debian Trixie support
+  * Update debhelper-compat to 13
+  * Update Standards-Version to 4.7.0 
 
  -- Christophe Trophime <christophe.trophime@lncmi.cnrs.fr>  Thu, 06 Feb 2025 10:50:37 +0100
 

@@ -1,7 +1,7 @@
 Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 Upstream-Name: python-magnetworkflows
 Upstream-Contact: <preferred name and address to reach the upstream project>
-Source: https://github.com/Trophime/python_magnetworkflows
+Source: https://github.com/MagnetDB/python_magnetworkflows
 
 Files: *
 Copyright: 2020-2021 Lncmi <christophe.trophime@lncmi.cnrs.fr><
