@@ -1,7 +1,7 @@
 # FROM ghcr.io/feelpp/feelpp:v0.110.2-focal
 # feelpp:v0.111.0-alpha.5-bullseye
 # not working
-FROM ubuntu:noble
+FROM debian:13
 
 
 USER root
