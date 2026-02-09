@@ -4,7 +4,7 @@ set +x
 
 # pwd shall contains requirements.txt
 
-VENVDIR=./magnetworkflow-env
+VENVDIR=./magnetworkflows-env
 USE_SYSTEM_PACKAGES=1
 
 if [ ! -d $VENVDIR ]; then
@@ -19,4 +19,4 @@ if [ ! -d $VENVDIR ]; then
    deactivate
 fi
 
-# add option to properly quit gmsh-env using deactivate
+# add option to properly quit magnetworkflows-env using deactivate

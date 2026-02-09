@@ -82,6 +82,8 @@ celerybeat-schedule
 
 # dotenv
 .env
+magnetworkflows-env
+venv
 
 # virtualenv
 .venv

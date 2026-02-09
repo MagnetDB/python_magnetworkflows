@@ -57,6 +57,9 @@ tar \
     --exclude=*.log \
     --exclude=*.old \
     --exclude=*.orig \
+    --exclude=*.zip \
+    --exclude=*.tgz \
+    --exclude=*.sif \
     --exclude=*~ \
     --exclude=#*# \
     --exclude=poetry.lock \
