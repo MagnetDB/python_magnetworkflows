@@ -151,11 +151,24 @@ def init(
     init feelp env and feelpp problem
     """
 
+    print(
+        f"init: jsonmodel={jsonmodel}, meshmodel={meshmodel}, cwd={os.getcwd()}, args.wd={args.wd}, pwd={pwd}",
+        flush=True,
+    )
+
     # Handle both relative and absolute paths
     if not os.path.isabs(jsonmodel):
         jsonmodel = os.path.join(pwd, jsonmodel)
     if not os.path.isabs(meshmodel):
         meshmodel = os.path.join(pwd, meshmodel)
+    print(
+        f"init: after handling paths, jsonmodel={jsonmodel}, meshmodel={meshmodel}",
+        flush=True,
+    )
+
+    if args.wd != ".":
+        if not os.path.isabs(args.cfgfile):
+            cfgfile = os.path.join(args.wd, args.cfgfile)
 
     if not e:
         e = fppc.Environment(
@@ -164,17 +177,15 @@ def init(
             config=fppc.localRepository(directory),
         )
         if e.isMasterRank():
-            print(
-                f"Init: feelpp env created (pwd={pwd}, cwd={os.getcwd()})", flush=True
-            )
+            print(f"Init: feelpp env created (wd={pwd}, cwd={os.getcwd()})", flush=True)
 
     fields = init_field(e, jsonmodel, meshmodel, dimension)
     if e.isMasterRank():
         print(f"Init: fields={fields}", flush=True)
 
-    e.setConfigFile(args.cfgfile)
+    e.setConfigFile(cfgfile)
     if e.isMasterRank():
-        print("Init: setconfigfile", flush=True)
+        print(f"Init: setconfigfile {cfgfile}", flush=True)
 
     f = cfpdes.cfpdes(dim=dimension)
     if e.isMasterRank():
