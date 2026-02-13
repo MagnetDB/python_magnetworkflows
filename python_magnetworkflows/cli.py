@@ -1011,16 +1011,18 @@ def main():
             basedir = args.wd
 
         jsonmodel = feelpp_config["cfpdes"]["filename"]
-        jsonmodel = jsonmodel.replace(r"$cfgdir/", f"{basedir}/")
+        if not jsonmodel.startswith("$cfgdir/"):
+            if not os.path.isabs(jsonmodel):
+                jsonmodel = os.path.abspath(os.path.join(args.wd, jsonmodel))
+        else:
+            jsonmodel = jsonmodel.replace(r"$cfgdir/", f"{basedir}/")
 
         meshmodel = feelpp_config["cfpdes"]["mesh.filename"]
-        meshmodel = meshmodel.replace(r"$cfgdir/", f"{basedir}/")
-
-    # Convert to absolute paths if they are relative
-    if not os.path.isabs(jsonmodel):
-        jsonmodel = os.path.abspath(os.path.join(args.wd, jsonmodel))
-    if not os.path.isabs(meshmodel):
-        meshmodel = os.path.abspath(os.path.join(args.wd, meshmodel))
+        if not meshmodel.startswith("$cfgdir/"):
+            if not os.path.isabs(meshmodel):
+                meshmodel = os.path.abspath(os.path.join(args.wd, meshmodel))
+        else:
+            meshmodel = meshmodel.replace(r"$cfgdir/", f"{basedir}/")
 
     # Get Parameters from JSON model file
     parameters = {}
