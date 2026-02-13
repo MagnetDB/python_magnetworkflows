@@ -32,6 +32,11 @@ def main():
     # TODO force millimeter when args.method == "HDG"
     # units = load_units('meter')
 
+    pwd = os.getcwd()
+    if args.wd != ".":
+        print(f"change working directory to {args.wd}", flush=True)
+        os.chdir(args.wd)
+
     # Load cfg as config
     dim = 0
     jsonmodel = ""
@@ -252,6 +257,10 @@ def main():
 
     if args.debug:
         print(f"end of commissioning, rank={e.worldCommPtr().localRank()}", flush=True)
+
+    if args.wd != "":
+        print(f"change back working directory to {pwd}", flush=True)
+        os.chdir(pwd)
 
     return 0
 

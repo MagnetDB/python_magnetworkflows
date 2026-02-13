@@ -983,6 +983,11 @@ def main():
     parser = options(description, epilog)
     args = parser.parse_args()
 
+    pwd = os.getcwd()
+    if args.wd != ".":
+        print(f"change working directory to {args.wd}", flush=True)
+        os.chdir(args.wd)
+
     # Load units:
     # TODO force millimeter when args.method == "HDG"
     # units = load_units('meter')
@@ -1089,6 +1094,10 @@ def main():
 
     if args.debug:
         print(f"end of cli, rank={e.worldCommPtr().localRank()}", flush=True)
+
+    if args.wd != ".":  # change back to original working directory
+        print(f"change back working directory to {pwd}", flush=True)
+        os.chdir(pwd)
 
     return 0
 
