@@ -47,7 +47,7 @@ def main():
 
         basedir = os.path.dirname(args.cfgfile)
         if not basedir:
-            basedir = "."
+            basedir = args.wd
 
         jsonmodel = feelpp_config["cfpdes"]["filename"]
         jsonmodel = jsonmodel.replace(r"$cfgdir/", f"{basedir}/")
@@ -94,7 +94,7 @@ def main():
     commissioning_df = pd.DataFrame()
 
     global_df = {}
-    I = []
+    Currents = []
     step_i = {}
     for mname, values in args.mdata.items():
         filter = values.get("filter", "")
@@ -123,9 +123,9 @@ def main():
         if "steplist" in values:
             step_i[mname] = 0
             args.mdata[mname]["value"] = values["steplist"][step_i[mname]]
-            I.append(values["steplist"][step_i[mname]])
+            Currents.append(values["steplist"][step_i[mname]])
         else:
-            I.append(values["value"])
+            Currents.append(values["value"])
 
     global_df["MSite"] = {"U": pd.DataFrame()}
 
@@ -167,7 +167,7 @@ def main():
             print(f"oneconfig done, rank={e.worldCommPtr().localRank()}", flush=True)
 
         post = ""
-        for value in I:
+        for value in Currents:
             post += f"I={value}A-"
 
         if e.isMasterRank():
@@ -182,7 +182,7 @@ def main():
             global_df["MSite"]["U"] = pd.concat(
                 [global_df["MSite"]["U"], table.iloc[-1:]]
             )
-            table_final = pd.DataFrame([f"{I}"], columns=["measures"])
+            table_final = pd.DataFrame([f"{Currents}"], columns=["measures"])
             table_final, global_df = exportResults(
                 args,
                 parameters,
@@ -213,11 +213,11 @@ def main():
                     targets[f"{filter}I"]["objectif"] = values["steplist"][
                         step_i[mname]
                     ]
-                I[i] = targets[f"{filter}I"]["objectif"]
+                Currents[i] = targets[f"{filter}I"]["objectif"]
             else:
                 targets[f"{filter}I"]["objectif"] -= values["step"]
-                I[i] = targets[f"{filter}I"]["objectif"]
-                if I[i] <= 0 or nstep >= values["stepmax"]:
+                Currents[i] = targets[f"{filter}I"]["objectif"]
+                if Currents[i] <= 0 or nstep >= values["stepmax"]:
                     Commissioning = False
 
         if Commissioning:

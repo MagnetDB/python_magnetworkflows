@@ -174,7 +174,7 @@ def init(
 
     e.setConfigFile(args.cfgfile)
     if e.isMasterRank():
-        print(f"Init: setconfigfile", flush=True)
+        print("Init: setconfigfile", flush=True)
 
     f = cfpdes.cfpdes(dim=dimension)
     if e.isMasterRank():
@@ -251,7 +251,7 @@ def solve(
         for param in params[target]:
             headers.append(f"{param}")  # how to add unit??
         headers.append(f"err_max[{target}]")
-    headers.append(f"err_max")
+    headers.append("err_max")
 
     # Xh = fppc.functionSpace(space="Pch", mesh=f.mesh(), order=1)
     # usave = Xh.element()
@@ -290,10 +290,10 @@ def solve(
         try:
             f.solve()
             f.exportResults()
-        except:
+        except Exception as e:
             raise RuntimeError(
                 "cfpdes solver or exportResults fails - check feelpp logs for more info"
-            )
+            ) from e
 
         # TODO: get csv to look for depends on cfpdes model used
         from .error import compute_error

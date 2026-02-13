@@ -6,22 +6,21 @@ import sys
 import os
 import argparse
 import configparser
-
-import pandas as pd
 import json
 import re
 from warnings import simplefilter
 
-simplefilter(action="ignore", category=pd.errors.PerformanceWarning)
-
+import pandas as pd
 from natsort import natsorted
 from tabulate import tabulate
 
 from .waterflow import waterflow
 from .cooling import getDT, getHeatCoeff
-
 from .oneconfig import oneconfig
 from .solver import init
+
+# Supress pandas performance warnings
+simplefilter(action="ignore", category=pd.errors.PerformanceWarning)
 
 
 def options(description: str, epilog: str):
@@ -211,7 +210,9 @@ def loadMdata(e, pwd: str, args, targets: dict, postvalues: dict):
                 "name": f"Intensity_{filter}",
                 "post": {"type": "Statistics_Intensity", "math": "integrate"},
                 "waterflow": waterflow.flow_params(
-                    values["flow"] if os.path.isabs(values["flow"]) else os.path.join(pwd, values["flow"])
+                    values["flow"]
+                    if os.path.isabs(values["flow"])
+                    else os.path.join(pwd, values["flow"])
                 ),
             }
             if "Z" in args.cooling:
@@ -507,7 +508,9 @@ def loadMdata(e, pwd: str, args, targets: dict, postvalues: dict):
                 "name": f"Intensity{filter}",
                 "post": {"type": "Statistics_Intensity", "math": "integrate"},
                 "waterflow": waterflow.flow_params(
-                    values["flow"] if os.path.isabs(values["flow"]) else os.path.join(pwd, values["flow"])
+                    values["flow"]
+                    if os.path.isabs(values["flow"])
+                    else os.path.join(pwd, values["flow"])
                 ),
             }
             if "Z" in args.cooling:
@@ -783,8 +786,8 @@ def exportResults(
                 elif key == "PowerH":
                     dfUcoil = df / dict_df[target]["target"]
                     for columnName, columnData in dfUcoil.items():
-                        if "H" in columnName:  
-                            # if helix, calculate Ucoil 2 helices by 2 
+                        if "H" in columnName:
+                            # if helix, calculate Ucoil 2 helices by 2
                             nH = int(columnName.split("H", 1)[1])
 
                             Uname = f"{prefix}Ucoil_H{nH-1}H{nH}[V]"
@@ -823,9 +826,9 @@ def exportResults(
                 if args.debug:
                     print(f"dfT_T.keys={dfT.keys()}", flush=True)
                     print(f"dfT_T={dfT_T}", flush=True)
-                if global_df: # if commissioning, store in global_df
+                if global_df:  # if commissioning, store in global_df
                     global_df[mname][key] = pd.concat([global_df[mname][key], dfT])
-                else: # if cli, df to csv
+                else:  # if cli, df to csv
                     outdir = f"{prefix}{key}.measures"
                     os.makedirs(outdir, exist_ok=True)
                     dfT_T.to_csv(f"{outdir}/values.csv", index=True)
@@ -849,7 +852,7 @@ def exportResults(
                             print(f"columnData={columnData.keys()}", flush=True)
                         for T in ["Min", "Max"]:
                             if "H" in columnName:
-                                # if helices, calculate measures 2 helices by 2 
+                                # if helices, calculate measures 2 helices by 2
                                 nH = int(columnName.split("H", 1)[1])
 
                                 Tname = (
@@ -878,9 +881,9 @@ def exportResults(
                                 ][
                                     columnName
                                 ]
-                        if symbol != "DisplH": #DisplH doesn't have mean <- fix !
+                        if symbol != "DisplH":  # DisplH doesn't have mean <- fix !
                             if "H" in columnName:
-                                # if helices, calculate mean 2 helices by 2 with area values 
+                                # if helices, calculate mean 2 helices by 2 with area values
                                 nH = int(columnName.split("H", 1)[1])
 
                                 Tname = (
@@ -924,7 +927,7 @@ def exportResults(
                                 ]
 
         for columnName, columnData in table_final.items():
-            # Add R=Ucoil/I to table_final 
+            # Add R=Ucoil/I to table_final
             if columnName.startswith(f"{prefix}Ucoil"):
                 table_final[
                     columnName.replace("Ucoil", "R").replace("[V]", "[ohm]")
@@ -1000,7 +1003,7 @@ def main():
 
         basedir = os.path.dirname(args.cfgfile)
         if not basedir:
-            basedir = "."
+            basedir = args.wd
 
         jsonmodel = feelpp_config["cfpdes"]["filename"]
         jsonmodel = jsonmodel.replace(r"$cfgdir/", f"{basedir}/")
