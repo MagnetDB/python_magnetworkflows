@@ -73,7 +73,8 @@ def init_field(e, jsonmodel: str, meshmodel: str, dimension: int):
     if e.isMasterRank():
         print(f"init_field: jsonmodel={jsonmodel}, meshmodel={meshmodel}", flush=True)
 
-    basedir = os.path.dirname(jsonmodel)
+    # Use absolute path for basedir
+    basedir = os.path.dirname(os.path.abspath(jsonmodel))
     with open(jsonmodel, "r") as file:
         data = json.load(file)
 
@@ -150,7 +151,12 @@ def init(
     init feelp env and feelpp problem
     """
 
-    # pwd = os.getcwd()
+    # Handle both relative and absolute paths
+    if not os.path.isabs(jsonmodel):
+        jsonmodel = os.path.join(pwd, jsonmodel)
+    if not os.path.isabs(meshmodel):
+        meshmodel = os.path.join(pwd, meshmodel)
+
     if not e:
         e = fppc.Environment(
             [f"{fname}.py"],
@@ -162,7 +168,7 @@ def init(
                 f"Init: feelpp env created (pwd={pwd}, cwd={os.getcwd()})", flush=True
             )
 
-    fields = init_field(e, f"{pwd}/{jsonmodel}", f"{pwd}/{meshmodel}", dimension)
+    fields = init_field(e, jsonmodel, meshmodel, dimension)
     if e.isMasterRank():
         print(f"Init: fields={fields}", flush=True)
 
@@ -204,7 +210,7 @@ def solve(
     for target, values in targets.items():
         post += f'{target}={values["objectif"]}{values["unit"]}-'
 
-    basedir = os.path.dirname(jsonmodel)  # get absolute path instead??
+    basedir = os.path.dirname(os.path.abspath(jsonmodel))
 
     if e.isMasterRank():
         print(f"solve: jsonmodel={jsonmodel}, basedir={basedir}", flush=True)

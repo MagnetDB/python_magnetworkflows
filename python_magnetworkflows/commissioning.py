@@ -27,7 +27,6 @@ def main():
 
     parser = options(description, epilog)
     args = parser.parse_args()
-    pwd = os.getcwd()
 
     # Load units:
     # TODO force millimeter when args.method == "HDG"
@@ -56,6 +55,12 @@ def main():
         meshmodel = feelpp_config["cfpdes"]["mesh.filename"]
         meshmodel = meshmodel.replace(r"$cfgdir/", f"{basedir}/")
 
+    # Convert to absolute paths if they are relative
+    if not os.path.isabs(jsonmodel):
+        jsonmodel = os.path.abspath(os.path.join(args.wd, jsonmodel))
+    if not os.path.isabs(meshmodel):
+        meshmodel = os.path.abspath(os.path.join(args.wd, meshmodel))
+
     # Get Parameters from JSON model file
     parameters = {}
     with open(jsonmodel, "r") as jsonfile:
@@ -67,7 +72,7 @@ def main():
         fname,
         e,
         args,
-        pwd,
+        args.wd,
         jsonmodel,
         meshmodel,
         directory=feelpp_directory,
@@ -78,7 +83,7 @@ def main():
 
     if args.debug and e.isMasterRank():
         print(args)
-        print(f"cwd: {pwd}", flush=True)
+        print(f"pwd: {args.wd}", flush=True)
         print(f"feelpp_directory={feelpp_directory}", flush=True)
         print(f"dim={dim}", flush=True)
         print(f"basedir={basedir}", flush=True)
@@ -92,7 +97,7 @@ def main():
     I = []
     step_i = {}
     for mname, values in args.mdata.items():
-        filter = values["filter"]
+        filter = values.get("filter", "")
         global_df[filter[:-1]] = {
             "PowerM": pd.DataFrame(),
             "PowerH": pd.DataFrame(),
@@ -128,7 +133,7 @@ def main():
     postvalues = {}
     # args.mdata = currents:  {magnet.name: {'value': current.value, 'type': magnet.type, 'filter': '', 'flow_params': args.flow_params}}
     if args.mdata:
-        targets, postvalues = loadMdata(e, pwd, args, targets, postvalues)
+        targets, postvalues = loadMdata(e, args.wd, args, targets, postvalues)
 
     """
     postvalues = {
@@ -151,8 +156,8 @@ def main():
             f,
             fields,
             feelpp_directory,
-            f"{pwd}/{jsonmodel}",
-            f"{pwd}/{meshmodel}",
+            jsonmodel,
+            meshmodel,
             args,
             targets,
             postvalues,
@@ -199,7 +204,7 @@ def main():
 
         nstep += 1
         for i, (mname, values) in enumerate(args.mdata.items()):
-            filter = values["filter"]
+            filter = values.get("filter", "")
             if "steplist" in values:
                 step_i[mname] += 1
                 if len(values["steplist"]) == step_i[mname]:
@@ -222,7 +227,7 @@ def main():
                 fname,
                 e,
                 args,
-                pwd,
+                args.wd,
                 jsonmodel,
                 meshmodel,
                 directory=feelpp_directory,
@@ -243,7 +248,7 @@ def main():
                     os.makedirs(outdir, exist_ok=True)
                     df_T.to_csv(f"{outdir}/values.csv", index=True)
 
-        commissioning_df.to_csv(f"measures.csv", index=False)
+        commissioning_df.to_csv("measures.csv", index=False)
 
     if args.debug:
         print(f"end of commissioning, rank={e.worldCommPtr().localRank()}", flush=True)

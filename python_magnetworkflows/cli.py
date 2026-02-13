@@ -79,6 +79,12 @@ def options(description: str, epilog: str):
     parser.add_argument("--reloadcfg", help="get feelpp config", action="store_true")
     parser.add_argument("--debug", help="activate debug", action="store_true")
     parser.add_argument("--verbose", help="activate verbose", action="store_true")
+    parser.add_argument(
+        "--wd",
+        help="specify working directory for relative paths (default: '.')",
+        type=str,
+        default=".",
+    )
 
     return parser
 
@@ -87,7 +93,7 @@ def loadMdata(e, pwd: str, args, targets: dict, postvalues: dict):
     for mname, values in args.mdata.items():
         if e.isMasterRank():
             print(f"mname={mname}, values={values}")
-        filter = values["filter"]
+        filter = values.get("filter", "")
         if values["type"] == "helix":
             # change rematch, params, control_params
             PowerM = {
@@ -204,7 +210,9 @@ def loadMdata(e, pwd: str, args, targets: dict, postvalues: dict):
                 "unit": "A",
                 "name": f"Intensity_{filter}",
                 "post": {"type": "Statistics_Intensity", "math": "integrate"},
-                "waterflow": waterflow.flow_params(f'{pwd}/{values["flow"]}'),
+                "waterflow": waterflow.flow_params(
+                    values["flow"] if os.path.isabs(values["flow"]) else os.path.join(pwd, values["flow"])
+                ),
             }
             if "Z" in args.cooling:
                 if e.isMasterRank():
@@ -498,7 +506,9 @@ def loadMdata(e, pwd: str, args, targets: dict, postvalues: dict):
                 "unit": "A",
                 "name": f"Intensity{filter}",
                 "post": {"type": "Statistics_Intensity", "math": "integrate"},
-                "waterflow": waterflow.flow_params(f'{pwd}/{values["flow"]}'),
+                "waterflow": waterflow.flow_params(
+                    values["flow"] if os.path.isabs(values["flow"]) else os.path.join(pwd, values["flow"])
+                ),
             }
             if "Z" in args.cooling:
                 if e.isMasterRank():
@@ -969,7 +979,6 @@ def main():
 
     parser = options(description, epilog)
     args = parser.parse_args()
-    pwd = os.getcwd()
 
     # Load units:
     # TODO force millimeter when args.method == "HDG"
@@ -999,6 +1008,12 @@ def main():
         meshmodel = feelpp_config["cfpdes"]["mesh.filename"]
         meshmodel = meshmodel.replace(r"$cfgdir/", f"{basedir}/")
 
+    # Convert to absolute paths if they are relative
+    if not os.path.isabs(jsonmodel):
+        jsonmodel = os.path.abspath(os.path.join(args.wd, jsonmodel))
+    if not os.path.isabs(meshmodel):
+        meshmodel = os.path.abspath(os.path.join(args.wd, meshmodel))
+
     # Get Parameters from JSON model file
     parameters = {}
     with open(jsonmodel, "r") as jsonfile:
@@ -1010,7 +1025,7 @@ def main():
         fname,
         e,
         args,
-        pwd,
+        args.wd,
         jsonmodel,
         meshmodel,
         directory=feelpp_directory,
@@ -1019,7 +1034,7 @@ def main():
 
     if e.isMasterRank():
         print(args)
-        print(f"cwd: {pwd}")
+        print(f"pwd: {args.wd}")
         print(f"feelpp_directory={feelpp_directory}")
         print(f"dim={dim}")
         print(f"basedir={basedir}")
@@ -1032,7 +1047,7 @@ def main():
     # args.mdata =
     #  currents:  {magnet.name: {'value': current.value, 'type': magnet.type, 'filter': '', 'flow_params': args.flow_params}}
     if args.mdata:
-        targets, postvalues = loadMdata(e, pwd, args, targets, postvalues)
+        targets, postvalues = loadMdata(e, args.wd, args, targets, postvalues)
 
     """
     postvalues = {
@@ -1052,8 +1067,8 @@ def main():
         f,
         fields,
         feelpp_directory,
-        f"{pwd}/{jsonmodel}",
-        f"{pwd}/{meshmodel}",
+        jsonmodel,
+        meshmodel,
         args,
         targets,
         postvalues,
