@@ -340,7 +340,7 @@ def solve(
             print(f"bcast res, rank={comm.localRank()}")
 
         # extract res
-        assert isinstance(res, tuple), f"{res}"
+        assert isinstance(res, tuple), f"{res}, type(res)={type(res)}"
 
         (err_max, err_max_dT, err_max_h, table_, p_params, parameters, dict_df) = res
 

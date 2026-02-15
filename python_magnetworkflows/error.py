@@ -106,6 +106,8 @@ def read_measures_csv(measures_csv: dict, filename: str, debug: bool) -> dict:
             if debug:
                 print(f"read csv: {filename}", flush=True)
             measures_csv[filename] = pd.read_csv(file, sep=",")
+            if debug:
+                print(f"*** measures_csv[{filename}]: {measures_csv[filename].columns.values.tolist()}", flush=True)
     return measures_csv
 
 
@@ -130,8 +132,12 @@ def compute_error(
     parameters: all jsonmodel parameters
     dict_df:
     """
-    print(f"compute_error: it={it}, targets={targets},  ", flush=True)
+    print(f"*** compute_error: it={it}, targets={targets}, cooling={args.cooling}", flush=True)
     dict_df = init_dict_df(targets, args)
+
+    #y a un pb d'algo dans le cas: gradHZ  
+    # avec les noms des sorties du post pour la partie "Flux" 
+    # ("FluxZ" uniquement alors qu'on cherche une entree "Flux" -- error.py)
 
     table_ = [it]
     err_max = 0.0
@@ -143,6 +149,7 @@ def compute_error(
     List_SpecHeatout = []
     List_Qout = []
     Tw0 = None
+
     measures_csv = {}  # create dict for export csv to open them only once
     for target, values in targets.items():
         print(
@@ -161,6 +168,7 @@ def compute_error(
         ).copy(deep=True)
         relax = float(values["relax"])
         fuzzy = float(values["fuzzy"])
+        pextra = float(values.get("pextra", 1))
 
         # TODO: add stats for filtered_df to table_: mean, ecart type, min/max??
 
@@ -268,6 +276,8 @@ def compute_error(
                     dict_df[target][key][name] = getTarget(
                         {f"{name}": param}, name, measures_csv[filename], args.debug
                     ).copy(deep=True)
+                    if args.debug:
+                        print(f"{target}: postvalues {key} {name}={dict_df[target][key][name]}", flush=True)
 
         # perform natsort on dataframe and list
         print("Natsort on dataframe and list", flush=True)
@@ -284,6 +294,7 @@ def compute_error(
             if isinstance(values_, pd.core.frame.DataFrame):
                 msg += " dataframe sorted"
                 dict_df[target][key] = natsortdataframe(values_).copy(deep=True)
+                msg += f", columns={dict_df[target][key].columns.values.tolist()}"  
             if args.debug:
                 print(msg, flush=True)
 
@@ -298,16 +309,25 @@ def compute_error(
             if args.debug:
                 print(msg, flush=True)
 
+        # if args.cooling == "gradHZ":
+        # flux is empty
+        # we shall sum all the fluxZ to get the total flux for each channel and compute the error with PowerM
+        # if this OK?
+        # what happens when args.cooling in [meanH, gradH] ?
+        # what happen when args.cooling in [mean, grad]? 
         if args.debug:
             print(f"PowerM: {dict_df[target]['PowerM']}", flush=True)
             print(f"PowerH: {dict_df[target]['PowerH']}", flush=True)
+            for flux_key in [k for k in dict_df[target].keys() if k.startswith("Flux")]:
+                print(f"{flux_key}: {dict_df[target][flux_key]}", flush=True)
             print(f"Flux: {dict_df[target]['Flux']}", flush=True)
 
         PowerM = dict_df[target]["PowerM"].iloc[-1, 0]
         SPower_H = dict_df[target]["PowerH"].iloc[-1].sum()
         SFlux_H = dict_df[target]["Flux"].iloc[-1].sum()
 
-        # print(f'Flux: {type(dict_df[target]["Flux"])}', flush=True)
+        if args.debug:
+            print(f'Flux: {type(dict_df[target]["Flux"])}', flush=True)
         sortedflux = dict_df[target]["Flux"].copy(deep=True)
         t_headers = ["Part", "Flux[MW]"]
         t_parts = sortedflux.columns.values.tolist()
@@ -343,10 +363,14 @@ def compute_error(
                 print(f"{target}: {key}={p_params[key]}", flush=True)
 
         Ptol = 1e-2
-        if Powers_Diff / PowerM > Ptol:
-            return f"Power!=SPower_H:{100*Powers_Diff/PowerM:.3f}%  Power={PowerM:.3f} SPower_H={SPower_H:.3f}"
-        if PowerFlux_Diff / PowerM > Ptol:
-            return f"Power!=SFlux_H:{100*PowerFlux_Diff/PowerM:.3f}%   Power={PowerM:.3f} SFlux_H={SFlux_H:.3f}"
+        print(f"{target}: it={it} Power={PowerM:.3f} SPower_H={SPower_H:.3f} SFlux_H={SFlux_H:.3f}  Powers_Diff={Powers_Diff:.3f} PowerFlux_Diff={PowerFlux_Diff:.3f}",)
+
+        assert Powers_Diff / PowerM <= Ptol, (
+            f"Power!=SPower_H:{100*Powers_Diff/PowerM:.3f}%  Power={PowerM:.3f} SPower_H={SPower_H:.3f}"
+        )
+        assert PowerFlux_Diff / PowerM <= Ptol, (
+            f"Power!=SFlux_H:{100*PowerFlux_Diff/PowerM:.3f}%   Power={PowerM:.3f} SFlux_H={SFlux_H:.3f}"
+        )
 
         # get dict_df[target]["Flux"] column names
         for i, cname in enumerate(sortedflux.columns.values.tolist()):
@@ -419,6 +443,7 @@ def compute_error(
 
             FluxZ = None
             if "Z" in args.cooling:
+                print(f"{target}: get FluxZ", flush=True)
                 FluxZ = dict_df[target]["FluxZ"].copy(deep=True)
 
             Tw0 = 0.0
@@ -434,11 +459,15 @@ def compute_error(
                 Tw_z_old = []
                 hw_z_old = []
                 if FluxZ is not None:
+                    print(f"{target}: channel[{i}]: get Tw_z_old and hw_z_old for {cname}", flush=True)
                     csvfile = TwH[i]["filename"].replace("$cfgdir", basedir)
+                    print(f"{target}: channel[{i}]: read csv {csvfile} for TwH[{i}]", flush=True)
                     Tw_data = pd.read_csv(csvfile, sep=",")
+                    print(f"{target}: channel[{i}]: Tw_data columns={Tw_data.columns.values.tolist()}", flush=True)
                     Tw0 = Tw_data["Tw"].iloc[0]
                     Tw_z_old = Tw_data["Tw"].to_list()
                     if not "hw" in Tw_data:
+                        print(f"{target}: channel[{i}]: no hw column in Tw_data, set hw=80000 W/m2/K", flush=True)
                         Tw_data["hw"] = [80000] * len(Tw_z_old)
                     hw_z_old = Tw_data["hw"].to_list()
                     zsections = Tw_data["Z"].to_list()
@@ -450,16 +479,18 @@ def compute_error(
                         for fkey in FluxZ.columns.values.tolist()
                         if fkey.endswith(cname)
                     ]
-                    if len(Tw_data) != len(key_dz) + 1:
-                        return f"inconsistant data for Tw and FluxZ for {cname}"
+                    assert len(Tw_data) == len(key_dz) + 1, (
+                        f"inconsistant data for Tw and FluxZ for {cname}"
+                    )
 
                     FluxCh_dz = [
                         FluxZ.at[FluxZ.index[-1], f"FluxZ{i}_{cname}"]
                         for i in range(len(key_dz))
                     ]
                     htol = 1e-3
-                    if abs(1 - sum(FluxCh_dz) / PowerCh) > htol:
-                        return f"Sum(FluxZ)!=Flux[{cname}]:{abs(1 - sum(FluxCh_dz) / PowerCh)}>{htol}; PowerCh={PowerCh} Flux_H={sum(FluxCh_dz)}"
+                    assert abs(1 - sum(FluxCh_dz) / PowerCh) <= htol, (
+                        f"Sum(FluxZ)!=Flux[{cname}]:{abs(1 - sum(FluxCh_dz) / PowerCh)}>{htol}; PowerCh={PowerCh} Flux_H={sum(FluxCh_dz)}"
+                    )
 
                 U = Umean
                 tmp_dTwi = dTwH[i]
@@ -513,7 +544,7 @@ def compute_error(
                                 model=args.heatcorrelation,
                                 friction=args.friction,
                                 fuzzy=fuzzy,
-                                pextra=args.pextra
+                                pextra=pextra
                             )
                             if args.debug:
                                 print(
@@ -531,7 +562,7 @@ def compute_error(
                         model=args.heatcorrelation,
                         friction=args.friction,
                         fuzzy=fuzzy,
-                        pextra=args.pextra
+                        pextra=pextra
                     )
                     Steam = steam(tmp_Twh + tmp_dTwi / 2.0, Pressure)
                     tmp_U, cf = Uw(
@@ -665,7 +696,8 @@ def compute_error(
                     dPressure,
                     model=args.heatcorrelation,
                     friction=args.friction,
-                    fuzzy=fuzzy,pextra=args.pextra
+                    fuzzy=fuzzy,
+                    pextra=pextra
                 )
                 # f.addParameterInModelProperties(p_params["dTw"][i], dTg)
                 # f.addParameterInModelProperties(p_params["hw"][i], hg)

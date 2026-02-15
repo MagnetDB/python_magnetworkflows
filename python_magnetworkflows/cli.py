@@ -88,652 +88,626 @@ def options(description: str, epilog: str):
     return parser
 
 
+# Configuration constants
+MAGNET_TYPES = {"helix", "bitter"}
+DEFAULT_FUZZY_FACTOR_HELIX = 1.0
+DEFAULT_FUZZY_FACTOR_BITTER = 1.7
+DEFAULT_RELAX = 0
+DEFAULT_INDUCTANCE = 0
+DEFAULT_PEXTRA = 1
+
+
+def validate_magnet_config(magnet_type: str, values: dict) -> None:
+    """
+    Validate magnet configuration parameters.
+    
+    Args:
+        magnet_type: Type of magnet ('helix' or 'bitter')
+        values: Configuration values dictionary
+        
+    Raises:
+        ValueError: If configuration is invalid
+    """
+    if magnet_type not in MAGNET_TYPES:
+        raise ValueError(
+            f"Invalid magnet type '{magnet_type}'. "
+            f"Must be one of: {', '.join(MAGNET_TYPES)}"
+        )
+    
+    required_keys = ["type", "value", "flow"]
+    missing_keys = [key for key in required_keys if key not in values]
+    if missing_keys:
+        raise ValueError(
+            f"Missing required configuration keys: {', '.join(missing_keys)}"
+        )
+    
+    # Validate numeric values
+    if not isinstance(values["value"], (int, float)) or values["value"] <= 0:
+        raise ValueError(
+            f"Invalid 'value' parameter: {values['value']}. "
+            "Must be a positive number."
+        )
+    
+    # Validate optional numeric parameters
+    if "relax" in values:
+        if not isinstance(values["relax"], (int, float)) or values["relax"] < 0:
+            raise ValueError(
+                f"Invalid 'relax' parameter: {values['relax']}. "
+                "Must be a non-negative number."
+            )
+    
+    if "inductance" in values:
+        if not isinstance(values["inductance"], (int, float)) or values["inductance"] < 0:
+            raise ValueError(
+                f"Invalid 'inductance' parameter: {values['inductance']}. "
+                "Must be a non-negative number."
+            )
+    
+    if "heatCorrelationFuzzyFactor" in values:
+        if not isinstance(values["heatCorrelationFuzzyFactor"], (int, float)) or values["heatCorrelationFuzzyFactor"] <= 0:
+            raise ValueError(
+                f"Invalid 'heatCorrelationFuzzyFactor' parameter: {values['heatCorrelationFuzzyFactor']}. "
+                "Must be a positive number."
+            )
+    
+    if "pextra" in values:
+        if not isinstance(values["pextra"], (int, float)) or values["pextra"] <= 0:
+            raise ValueError(
+                f"Invalid 'pextra' parameter: {values['pextra']}. "
+                "Must be a positive number."
+            )
+
+
+def build_patterns(magnet_type: str, filter: str) -> dict:
+    """
+    Build regex patterns for a specific magnet type.
+    
+    Args:
+        magnet_type: Either 'helix' or 'bitter'
+        filter: Filter prefix for the magnet
+        
+    Returns:
+        Dictionary of pattern names to regex strings
+    """
+    if magnet_type == "helix":
+        return {
+            "power_m": rf"Statistics_PowerM_{filter}\w*integrate",
+            "power_h": rf"Statistics_Power_{filter}H\d+_integrate",
+            "flux": rf"Statistics_Flux_{filter}Channel\d+_integrate",
+            "flux_z": rf"Statistics_FluxZ\d+_{filter}Channel\d+_integrate",
+            "intensity": rf"Statistics_Intensity_{filter}H\w+_integrate",
+            "stat_t_min": rf"Statistics_Stat_T_{filter}\w*min",
+            "stat_t_mean": rf"Statistics_Stat_T_{filter}\w*mean",
+            "stat_t_max": rf"Statistics_Stat_T_{filter}\w*max",
+            "t_min": rf"Statistics_T_{filter}\w+\d+_min",
+            "t_mean": rf"Statistics_T_{filter}\w+\d+_mean",
+            "t_max": rf"Statistics_T_{filter}\w+\d+_max",
+            "stat_displ_min": rf"Statistics_Stat_Displ_{filter}\w*min",
+            "stat_displ_max": rf"Statistics_Stat_Displ_{filter}\w*max",
+            "stat_stress_min": rf"Statistics_Stat_Stress_{filter}\w*min",
+            "stat_stress_mean": rf"Statistics_Stat_Stress_{filter}\w*mean",
+            "stat_stress_max": rf"Statistics_Stat_Stress_{filter}\w*max",
+            "stat_vonmises_min": rf"Statistics_Stat_VonMises_{filter}\w*min",
+            "stat_vonmises_mean": rf"Statistics_Stat_VonMises_{filter}\w*mean",
+            "stat_vonmises_max": rf"Statistics_Stat_VonMises_{filter}\w*max",
+            "displ_min": rf"Statistics_Displ_{filter}\w+\d+_min",
+            "displ_max": rf"Statistics_Displ_{filter}\w+\d+_max",
+            "stress_min": rf"Statistics_Stress_{filter}\w+\d+_min",
+            "stress_mean": rf"Statistics_Stress_{filter}\w+\d+_mean",
+            "stress_max": rf"Statistics_Stress_{filter}\w+\d+_max",
+            "vonmises_min": rf"Statistics_VonMises_{filter}\w+\d+_min",
+            "vonmises_mean": rf"Statistics_VonMises_{filter}\w+\d+_mean",
+            "vonmises_max": rf"Statistics_VonMises_{filter}\w+\d+_max",
+        }
+    elif magnet_type == "bitter":
+        return {
+            "power_m": rf"Statistics_PowerM_{filter}\w*integrate",
+            "power_h": rf"Statistics_Power_{filter}\w+_B\d+_integrate",
+            "flux": rf"Statistics_Flux_{filter}\w+_Slit\d+_integrate",
+            "flux_z": rf"Statistics_FluxZ\d+_{filter}\w+_Slit\d+_integrate",
+            "intensity": rf"Statistics_Intensity_{filter}\w+_integrate",
+            "stat_t_min": rf"Statistics_Stat_T_{filter}\w*min",
+            "stat_t_mean": rf"Statistics_Stat_T_{filter}\w*mean",
+            "stat_t_max": rf"Statistics_Stat_T_{filter}\w*max",
+            "t_min": rf"Statistics_T_{filter}\w+_B\d+_min",
+            "t_mean": rf"Statistics_T_{filter}\w+_B\d+_mean",
+            "t_max": rf"Statistics_T_{filter}\w+_B\d+_max",
+            "stat_displ_min": rf"Statistics_Stat_Displ_{filter}\w*min",
+            "stat_displ_max": rf"Statistics_Stat_Displ_{filter}\w*max",
+            "stat_stress_min": rf"Statistics_Stat_Stress_{filter}\w*min",
+            "stat_stress_mean": rf"Statistics_Stat_Stress_{filter}\w*mean",
+            "stat_stress_max": rf"Statistics_Stat_Stress_{filter}\w*max",
+            "stat_vonmises_min": rf"Statistics_Stat_VonMises_{filter}\w*min",
+            "stat_vonmises_mean": rf"Statistics_Stat_VonMises_{filter}\w*mean",
+            "stat_vonmises_max": rf"Statistics_Stat_VonMises_{filter}\w*max",
+            "displ_min": rf"Statistics_Displ_{filter}\w+_B\d+_min",
+            "displ_max": rf"Statistics_Displ_{filter}\w+_B\d+_max",
+            "stress_min": rf"Statistics_Stress_{filter}\w+_B\d+_min",
+            "stress_mean": rf"Statistics_Stress_{filter}\w+_B\d+_mean",
+            "stress_max": rf"Statistics_Stress_{filter}\w+_B\d+_max",
+            "vonmises_min": rf"Statistics_VonMises_{filter}\w+_B\d+_min",
+            "vonmises_mean": rf"Statistics_VonMises_{filter}\w+_B\d+_mean",
+            "vonmises_max": rf"Statistics_VonMises_{filter}\w+_B\d+_max",
+        }
+    else:
+        raise ValueError(f"Unknown magnet type: {magnet_type}")
+
+
+def create_measure_dict(
+    name: str,
+    csv: str,
+    rematch: str,
+    post_type: str,
+    post_math: str,
+    unit: str,
+    params: list = None,
+    control_params: list = None,
+) -> dict:
+    """
+    Factory function for creating measurement dictionaries.
+    
+    Args:
+        name: Name of the measure
+        csv: Path to CSV file
+        rematch: Regex pattern for matching
+        post_type: Post-processing type
+        post_math: Post-processing math operation
+        unit: Unit of measurement
+        params: Optional list of parameters
+        control_params: Optional list of control parameters
+        
+    Returns:
+        Dictionary with measurement configuration
+    """
+    return {
+        "name": name,
+        "csv": csv,
+        "rematch": rematch,
+        "params": params or [],
+        "control_params": control_params or [],
+        "unit": unit,
+        "post": {"type": post_type, "math": post_math},
+    }
+
+
+def build_power_measures(magnet_type: str, filter: str, patterns: dict) -> dict:
+    """
+    Build power-related measures (PowerM, PowerH, Flux, FluxZ).
+    
+    Args:
+        magnet_type: Either 'helix' or 'bitter'
+        filter: Filter prefix for the magnet
+        patterns: Dictionary of regex patterns from build_patterns()
+        
+    Returns:
+        Dictionary containing PowerM, PowerH, Flux measure definitions
+    """
+    csv_file = "heat.measures/values.csv"
+    
+    measures = {
+        "PowerM": create_measure_dict(
+            "PowerM", csv_file, patterns["power_m"],
+            "Statistics_PowerM", "integrate", "W"
+        ),
+        "PowerH": create_measure_dict(
+            "PowerH", csv_file, patterns["power_h"],
+            "Statistics_Power", "integrate", "W"
+        ),
+        "Flux": create_measure_dict(
+            "Flux", csv_file, patterns["flux"],
+            "Statistics_Flux", "integrate", "W"
+        ),
+    }
+    
+    return measures
+
+
+def build_heat_params(magnet_type: str, filter: str) -> dict:
+    """
+    Build heat coefficient and temperature parameters.
+    
+    Args:
+        magnet_type: Either 'helix' or 'bitter'
+        filter: Filter prefix for the magnet
+        
+    Returns:
+        Dictionary containing HeatCoeff and DT parameter definitions
+    """
+    if magnet_type == "helix":
+        heat_coeff = {
+            "name": "HeatCoeff",
+            "params": [
+                ("Dh", f"Dh_{filter}\\w+"),
+                ("Sh", f"Sh_{filter}\\w+"),
+                ("hw", f"hw_{filter}Channel"),
+                ("hwH", f"hw_{filter}Channel\\d+"),
+                ("Zmax", f"Zmax_{filter}Channel"),
+                ("ZmaxH", f"Zmax_{filter}Channel\\d+"),
+            ],
+            "value": (getHeatCoeff),
+            "unit": "W/m2/K",
+        }
+        dt = {
+            "name": "DT",
+            "params": [
+                ("Tw", f"Tw_{filter}Channel"),
+                ("dTw", f"dTw_{filter}Channel"),
+                ("TwH", f"Tw_{filter}Channel\\d+"),
+                ("dTwH", f"dTw_{filter}Channel\\d+"),
+            ],
+            "value": (getDT),
+            "unit": "K",
+        }
+    elif magnet_type == "bitter":
+        heat_coeff = {
+            "name": "HeatCoeff",
+            "params": [
+                ("Dh", f"Dh_{filter}\\w+"),
+                ("Sh", f"Sh_{filter}\\w+"),
+                ("hw", f"hw_{filter}\\w+", "\\w+_Slit\\w+", False),
+                ("hwH", f"hw_{filter}\\w+", "\\w+_Slit\\w+", True),
+                ("Zmax", f"Zmax_{filter}\\w+", "\\w+_Slit\\w+", False),
+                ("ZmaxH", f"Zmax_{filter}\\w+", "\\w+_Slit\\w+", True),
+            ],
+            "value": (getHeatCoeff),
+            "unit": "W/m2/K",
+        }
+        dt = {
+            "name": "DT",
+            "params": [
+                ("Tw", f"Tw_{filter}\\w+", "\\w+_Slit\\w+", False),
+                ("dTw", f"dTw_{filter}\\w+", "\\w+_Slit\\w+", False),
+                ("TwH", f"Tw_{filter}\\w+", "\\w+_Slit\\w+", True),
+                ("dTwH", f"dTw_{filter}\\w+", "\\w+_Slit\\w+", True),
+            ],
+            "value": (getDT),
+            "unit": "K",
+        }
+    else:
+        raise ValueError(f"Unknown magnet type: {magnet_type}")
+    
+    return {"HeatCoeff": heat_coeff, "DT": dt}
+
+
+def build_temperature_measures(magnet_type: str, filter: str, patterns: dict) -> dict:
+    """
+    Build all temperature-related measures (MinT, MeanT, MaxT, MinTH, MeanTH, MaxTH).
+    
+    Args:
+        magnet_type: Either 'helix' or 'bitter'
+        filter: Filter prefix for the magnet
+        patterns: Dictionary of regex patterns from build_patterns()
+        
+    Returns:
+        Dictionary containing temperature measure definitions
+    """
+    csv_file = "heat.measures/values.csv"
+    
+    measures = {
+        "MinT": create_measure_dict(
+            "MinT", csv_file, patterns["stat_t_min"],
+            "Statistics_Stat_T", "min", "K"
+        ),
+        "MeanT": create_measure_dict(
+            "MeanT", csv_file, patterns["stat_t_mean"],
+            "Statistics_Stat_T", "mean", "K"
+        ),
+        "MaxT": create_measure_dict(
+            "MaxT", csv_file, patterns["stat_t_max"],
+            "Statistics_Stat_T", "max", "K"
+        ),
+        "MinTH": create_measure_dict(
+            "MinTH", csv_file, patterns["t_min"],
+            "Statistics_T", "min", "K"
+        ),
+        "MeanTH": create_measure_dict(
+            "MeanTH", csv_file, patterns["t_mean"],
+            "Statistics_T", "mean", "K"
+        ),
+        "MaxTH": create_measure_dict(
+            "MaxTH", csv_file, patterns["t_max"],
+            "Statistics_T", "max", "K"
+        ),
+    }
+    
+    return measures
+
+
+def build_mechanical_measures(magnet_type: str, filter: str, patterns: dict) -> dict:
+    """
+    Build all mechanical-related measures (displacement, stress, von Mises).
+    
+    Args:
+        magnet_type: Either 'helix' or 'bitter'
+        filter: Filter prefix for the magnet
+        patterns: Dictionary of regex patterns from build_patterns()
+        
+    Returns:
+        Dictionary containing mechanical measure definitions
+    """
+    csv_file = "elastic.measures/values.csv"
+    
+    measures = {
+        "MinDispl": create_measure_dict(
+            "MinDispl", csv_file, patterns["stat_displ_min"],
+            "Statistics_Stat_Displ", "min", "m"
+        ),
+        "MaxDispl": create_measure_dict(
+            "MaxDispl", csv_file, patterns["stat_displ_max"],
+            "Statistics_Stat_Displ", "max", "m"
+        ),
+        "MinStress": create_measure_dict(
+            "MinStress", csv_file, patterns["stat_stress_min"],
+            "Statistics_Stat_Stress", "min", "Pa"
+        ),
+        "MeanStress": create_measure_dict(
+            "MeanStress", csv_file, patterns["stat_stress_mean"],
+            "Statistics_Stat_Stress", "mean", "Pa"
+        ),
+        "MaxStress": create_measure_dict(
+            "MaxStress", csv_file, patterns["stat_stress_max"],
+            "Statistics_Stat_Stress", "max", "Pa"
+        ),
+        "MinVonMises": create_measure_dict(
+            "MinVonMises", csv_file, patterns["stat_vonmises_min"],
+            "Statistics_Stat_VonMises", "min", "Pa"
+        ),
+        "MeanVonMises": create_measure_dict(
+            "MeanVonMises", csv_file, patterns["stat_vonmises_mean"],
+            "Statistics_Stat_VonMises", "mean", "Pa"
+        ),
+        "MaxVonMises": create_measure_dict(
+            "MaxVonMises", csv_file, patterns["stat_vonmises_max"],
+            "Statistics_Stat_VonMises", "max", "Pa"
+        ),
+        "MinDisplH": create_measure_dict(
+            "MinDisplH", csv_file, patterns["displ_min"],
+            "Statistics_Displ", "min", "m"
+        ),
+        "MaxDisplH": create_measure_dict(
+            "MaxDisplH", csv_file, patterns["displ_max"],
+            "Statistics_Displ", "max", "m"
+        ),
+        "MinStressH": create_measure_dict(
+            "MinStressH", csv_file, patterns["stress_min"],
+            "Statistics_Stress", "min", "Pa"
+        ),
+        "MeanStressH": create_measure_dict(
+            "MeanStressH", csv_file, patterns["stress_mean"],
+            "Statistics_Stress", "mean", "Pa"
+        ),
+        "MaxStressH": create_measure_dict(
+            "MaxStressH", csv_file, patterns["stress_max"],
+            "Statistics_Stress", "max", "Pa"
+        ),
+        "MinVonMisesH": create_measure_dict(
+            "MinVonMisesH", csv_file, patterns["vonmises_min"],
+            "Statistics_VonMises", "min", "Pa"
+        ),
+        "MeanVonMisesH": create_measure_dict(
+            "MeanVonMisesH", csv_file, patterns["vonmises_mean"],
+            "Statistics_VonMises", "mean", "Pa"
+        ),
+        "MaxVonMisesH": create_measure_dict(
+            "MaxVonMisesH", csv_file, patterns["vonmises_max"],
+            "Statistics_VonMises", "max", "Pa"
+        ),
+    }
+    
+    return measures
+
+
+def configure_magnet_target(
+    filter: str,
+    magnet_type: str,
+    values: dict,
+    pwd: str,
+    args,
+    patterns: dict,
+    power_measures: dict,
+    heat_params: dict,
+    e
+) -> dict:
+    """
+    Configure a single magnet target entry.
+    
+    Args:
+        filter: Filter prefix for the magnet
+        magnet_type: Either 'helix' or 'bitter'
+        values: Magnet configuration values from args.mdata
+        pwd: Working directory path
+        args: Command-line arguments
+        patterns: Regex patterns for this magnet type
+        power_measures: Dictionary containing PowerM, PowerH, Flux
+        heat_params: Dictionary containing HeatCoeff, DT
+        e: Feel++ environment
+        
+    Returns:
+        Target configuration dictionary
+    """
+    # Determine target parameters based on magnet type
+    if magnet_type == "helix":
+        target_rematch = f"Statistics_Intensity_{filter}H\\w+_integrate"
+    elif magnet_type == "bitter":
+        target_rematch = f"Statistics_Intensity_{filter}\\w+_integrate"
+    else:
+        raise ValueError(f"Unknown magnet type: {magnet_type}")
+    
+    target_params = [("N", f"N_{filter}\\w+")]
+    target_control_params = [(f"{filter}U", f"U_{filter}\\w+")]
+    
+    # Build base target configuration
+    target_config = {
+        "objectif": values["value"],
+        "type": magnet_type,
+        "csv": "heat.measures/values.csv",
+        "rematch": target_rematch,
+        "params": target_params,
+        "control_params": target_control_params,
+        "computed_params": [
+            heat_params["HeatCoeff"],
+            heat_params["DT"],
+            power_measures["Flux"],
+            power_measures["PowerM"],
+            power_measures["PowerH"]
+        ],
+        "unit": "A",
+        "name": f"Intensity_{filter}",
+        "post": {"type": "Statistics_Intensity", "math": "integrate"},
+        "waterflow": waterflow.flow_params(
+            values["flow"]
+            if os.path.isabs(values["flow"])
+            else os.path.join(pwd, values["flow"])
+        ),
+    }
+    
+    # Add FluxZ if using Z-gradient cooling
+    if "Z" in args.cooling:
+        if e.isMasterRank():
+            print(f"add FluxZ for {magnet_type}")
+        FluxZ = create_measure_dict(
+            "FluxZ",
+            "heat.measures/values.csv",
+            patterns["flux_z"],
+            "Statistics",
+            "integrate",
+            "W"
+        )
+        target_config["computed_params"].append(FluxZ)
+    
+    # Set optional parameters
+    target_config["relax"] = values.get("relax", DEFAULT_RELAX)
+    target_config["inductance"] = values.get("inductance", DEFAULT_INDUCTANCE)
+    
+    # Set fuzzy factor (default depends on magnet type)
+    if "heatCorrelationFuzzyFactor" in values:
+        target_config["fuzzy"] = values["heatCorrelationFuzzyFactor"]
+    elif magnet_type == "bitter":
+        target_config["fuzzy"] = DEFAULT_FUZZY_FACTOR_BITTER
+    else:
+        target_config["fuzzy"] = DEFAULT_FUZZY_FACTOR_HELIX
+    
+    # Set pextra (extra pressure loss parameter)
+    target_config["pextra"] = values.get("pextra", DEFAULT_PEXTRA)
+    
+    return target_config
+
+
+def configure_magnet_postvalues(
+    temp_measures: dict,
+    mech_measures: dict = None
+) -> dict:
+    """
+    Configure post-processing values for a magnet.
+    
+    Args:
+        temp_measures: Dictionary containing temperature measures
+        mech_measures: Optional dictionary containing mechanical measures
+        
+    Returns:
+        Post-processing configuration dictionary
+    """
+    postvalue_config = {
+        "statsT": [
+            temp_measures["MinT"],
+            temp_measures["MeanT"],
+            temp_measures["MaxT"]
+        ],
+        "statsTH": [
+            temp_measures["MinTH"],
+            temp_measures["MeanTH"],
+            temp_measures["MaxTH"]
+        ],
+    }
+    
+    # Add mechanical post-processing if available
+    if mech_measures:
+        postvalue_config["statsDispl"] = [
+            mech_measures["MinDispl"],
+            mech_measures["MaxDispl"]
+        ]
+        postvalue_config["statsStress"] = [
+            mech_measures["MinStress"],
+            mech_measures["MeanStress"],
+            mech_measures["MaxStress"]
+        ]
+        postvalue_config["statsVonMises"] = [
+            mech_measures["MinVonMises"],
+            mech_measures["MeanVonMises"],
+            mech_measures["MaxVonMises"]
+        ]
+        postvalue_config["statsDisplH"] = [
+            mech_measures["MinDisplH"],
+            mech_measures["MaxDisplH"]
+        ]
+        postvalue_config["statsStressH"] = [
+            mech_measures["MinStressH"],
+            mech_measures["MeanStressH"],
+            mech_measures["MaxStressH"]
+        ]
+        postvalue_config["statsVonMisesH"] = [
+            mech_measures["MinVonMisesH"],
+            mech_measures["MeanVonMisesH"],
+            mech_measures["MaxVonMisesH"]
+        ]
+    
+    return postvalue_config
+
+
 def loadMdata(e, pwd: str, args, targets: dict, postvalues: dict):
+    """
+    Load magnet data configuration.
+    
+    Configures targets and postvalues for each magnet defined in args.mdata.
+    Uses helper functions to build patterns, measures, and parameters.
+    
+    Args:
+        e: Feel++ environment
+        pwd: Working directory path
+        args: Arguments containing magnet data and cooling configuration
+        targets: Dictionary to populate with target configurations
+        postvalues: Dictionary to populate with post-processing values
+        
+    Returns:
+        Tuple of (targets, postvalues)
+    """
     for mname, values in args.mdata.items():
         if e.isMasterRank():
             print(f"mname={mname}, values={values}")
+        
         filter = values.get("filter", "")
-        if values["type"] == "helix":
-            # change rematch, params, control_params
-            PowerM = {
-                "name": "PowerM",
-                "csv": "heat.measures/values.csv",
-                "rematch": f"Statistics_PowerM_{filter}\\w*integrate",
-                "post": {"type": "Statistics_PowerM", "math": "integrate"},
-                "unit": "W",
-            }
-            PowerH = {
-                "name": "PowerH",
-                "csv": "heat.measures/values.csv",
-                "rematch": f"Statistics_Power_{filter}H\\d+_integrate",
-                "post": {"type": "Statistics_Power", "math": "integrate"},
-                "unit": "W",
-            }
-
-            Flux = {
-                "name": "Flux",
-                "csv": "heat.measures/values.csv",
-                "rematch": f"Statistics_Flux_{filter}Channel\\d+_integrate",
-                "post": {"type": "Statistics_Flux", "math": "integrate"},
-                "unit": "W",
-            }
-
-            HeatCoeff = {
-                "name": "HeatCoeff",
-                "params": [
-                    ("Dh", f"Dh_{filter}\\w+"),
-                    ("Sh", f"Sh_{filter}\\w+"),
-                    ("hw", f"hw_{filter}Channel"),
-                    ("hwH", f"hw_{filter}Channel\\d+"),
-                    ("Zmax", f"Zmax_{filter}Channel"),
-                    ("ZmaxH", f"Zmax_{filter}Channel\\d+"),
-                ],
-                "value": (getHeatCoeff),
-                "unit": "W/m2/K",
-            }
-
-            DT = {
-                "name": "DT",
-                "params": [
-                    ("Tw", f"Tw_{filter}Channel"),
-                    ("dTw", f"dTw_{filter}Channel"),
-                    ("TwH", f"Tw_{filter}Channel\\d+"),
-                    ("dTwH", f"dTw_{filter}Channel\\d+"),
-                ],
-                "value": (getDT),
-                "unit": "K",
-            }
-            MinT = {
-                "name": "MinT",
-                "csv": "heat.measures/values.csv",
-                "rematch": f"Statistics_Stat_T_{filter}\\w*min",
-                "params": [],
-                "control_params": [],
-                "unit": "K",
-                "post": {"type": "Statistics_Stat_T", "math": "min"},
-            }
-            MeanT = {
-                "name": "MeanT",
-                "csv": "heat.measures/values.csv",
-                "rematch": f"Statistics_Stat_T_{filter}\\w*mean",
-                "params": [],
-                "control_params": [],
-                "unit": "K",
-                "post": {"type": "Statistics_Stat_T", "math": "mean"},
-            }
-            MaxT = {
-                "name": "MaxT",
-                "csv": "heat.measures/values.csv",
-                "rematch": f"Statistics_Stat_T_{filter}\\w*max",
-                "params": [],
-                "control_params": [],
-                "unit": "K",
-                "post": {"type": "Statistics_Stat_T", "math": "max"},
-            }
-            MinTH = {
-                "name": "MinTH",
-                "csv": "heat.measures/values.csv",
-                "rematch": f"Statistics_T_{filter}\\w+\\d+_min",
-                "params": [],
-                "control_params": [],
-                "unit": "K",
-                "post": {"type": "Statistics_T", "math": "min"},
-            }
-            MeanTH = {
-                "name": "MeanTH",
-                "csv": "heat.measures/values.csv",
-                "rematch": f"Statistics_T_{filter}\\w+\\d+_mean",
-                "params": [],
-                "control_params": [],
-                "unit": "K",
-                "post": {"type": "Statistics_T", "math": "mean"},
-            }
-            MaxTH = {
-                "name": "MaxTH",
-                "csv": "heat.measures/values.csv",
-                "rematch": f"Statistics_T_{filter}\\w+\\d+_max",
-                "params": [],
-                "control_params": [],
-                "unit": "K",
-                "post": {"type": "Statistics_T", "math": "max"},
-            }
-
-            targets[f"{filter}I"] = {
-                "objectif": values["value"],
-                "type": "helix",
-                "csv": "heat.measures/values.csv",
-                "rematch": f"Statistics_Intensity_{filter}H\\w+_integrate",
-                "params": [("N", f"N_{filter}\\w+")],
-                "control_params": [(f"{filter}U", f"U_{filter}\\w+")],
-                "computed_params": [HeatCoeff, DT, Flux, PowerM, PowerH],
-                "unit": "A",
-                "name": f"Intensity_{filter}",
-                "post": {"type": "Statistics_Intensity", "math": "integrate"},
-                "waterflow": waterflow.flow_params(
-                    values["flow"]
-                    if os.path.isabs(values["flow"])
-                    else os.path.join(pwd, values["flow"])
-                ),
-            }
-            if "Z" in args.cooling:
-                if e.isMasterRank():
-                    print("add FluxZ for Insert")
-                FluxZ = {
-                    "name": "FluxZ",
-                    "csv": "heat.measures/values.csv",
-                    "rematch": f"Statistics_FluxZ\\d+_{filter}Channel\\d+_integrate",
-                    "post": {"type": "Statistics", "math": "integrate"},
-                    "unit": "W",
-                }
-                targets[f"{filter}I"]["computed_params"].append(FluxZ)
-
-            if "thmagel" in args.cfgfile:
-                MinDispl = {
-                    "name": "MinDispl",
-                    "csv": "elastic.measures/values.csv",
-                    "rematch": f"Statistics_Stat_Displ_{filter}\\w*min",
-                    "params": [],
-                    "control_params": [],
-                    "unit": "m",
-                    "post": {"type": "Statistics_Stat_Displ", "math": "min"},
-                }
-                # MeanDispl = {
-                #     "name": "MeanDispl",
-                #     "csv": "elastic.measures/values.csv",
-                #     "rematch": f"Statistics_Stat_Displ_{filter}\\w*mean",
-                #     "params": [],
-                #     "control_params": [],
-                #     "unit": "m",
-                #     "post": {"type": "Statistics_Stat_Displ", "math": "mean"},
-                # }
-                MaxDispl = {
-                    "name": "MaxDispl",
-                    "csv": "elastic.measures/values.csv",
-                    "rematch": f"Statistics_Stat_Displ_{filter}\\w*max",
-                    "params": [],
-                    "control_params": [],
-                    "unit": "m",
-                    "post": {"type": "Statistics_Stat_Displ", "math": "max"},
-                }
-                MinStress = {
-                    "name": "MinStress",
-                    "csv": "elastic.measures/values.csv",
-                    "rematch": f"Statistics_Stat_Stress_{filter}\\w*min",
-                    "params": [],
-                    "control_params": [],
-                    "unit": "Pa",
-                    "post": {"type": "Statistics_Stat_Stress", "math": "min"},
-                }
-                MeanStress = {
-                    "name": "MeanStress",
-                    "csv": "elastic.measures/values.csv",
-                    "rematch": f"Statistics_Stat_Stress_{filter}\\w*mean",
-                    "params": [],
-                    "control_params": [],
-                    "unit": "Pa",
-                    "post": {"type": "Statistics_Stat_Stress", "math": "mean"},
-                }
-                MaxStress = {
-                    "name": "MaxStress",
-                    "csv": "elastic.measures/values.csv",
-                    "rematch": f"Statistics_Stat_Stress_{filter}\\w*max",
-                    "params": [],
-                    "control_params": [],
-                    "unit": "Pa",
-                    "post": {"type": "Statistics_Stat_Stress", "math": "max"},
-                }
-                MinVonMises = {
-                    "name": "MinVonMises",
-                    "csv": "elastic.measures/values.csv",
-                    "rematch": f"Statistics_Stat_VonMises_{filter}\\w*min",
-                    "params": [],
-                    "control_params": [],
-                    "unit": "Pa",
-                    "post": {"type": "Statistics_Stat_VonMises", "math": "min"},
-                }
-                MeanVonMises = {
-                    "name": "MeanVonMises",
-                    "csv": "elastic.measures/values.csv",
-                    "rematch": f"Statistics_Stat_VonMises_{filter}\\w*mean",
-                    "params": [],
-                    "control_params": [],
-                    "unit": "Pa",
-                    "post": {"type": "Statistics_Stat_VonMises", "math": "mean"},
-                }
-                MaxVonMises = {
-                    "name": "MaxVonMises",
-                    "csv": "elastic.measures/values.csv",
-                    "rematch": f"Statistics_Stat_VonMises_{filter}\\w*max",
-                    "params": [],
-                    "control_params": [],
-                    "unit": "Pa",
-                    "post": {"type": "Statistics_Stat_VonMises", "math": "max"},
-                }
-                MinDisplH = {
-                    "name": "MinDisplH",
-                    "csv": "elastic.measures/values.csv",
-                    "rematch": f"Statistics_Displ_{filter}\\w+\\d+_min",
-                    "params": [],
-                    "control_params": [],
-                    "unit": "m",
-                    "post": {"type": "Statistics_Displ", "math": "min"},
-                }
-                # MeanDisplH = {
-                #     "name": "MeanDisplH",
-                #     "csv": "elastic.measures/values.csv",
-                #     "rematch": f"Statistics_Displ_{filter}\\w+\\d+_mean",
-                #     "params": [],
-                #     "control_params": [],
-                #     "unit": "m",
-                #     "post": {"type": "Statistics_Displ", "math": "mean"},
-                # }
-                MaxDisplH = {
-                    "name": "MaxDisplH",
-                    "csv": "elastic.measures/values.csv",
-                    "rematch": f"Statistics_Displ_{filter}\\w+\\d+_max",
-                    "params": [],
-                    "control_params": [],
-                    "unit": "m",
-                    "post": {"type": "Statistics_Displ", "math": "max"},
-                }
-                MinStressH = {
-                    "name": "MinStressH",
-                    "csv": "elastic.measures/values.csv",
-                    "rematch": f"Statistics_Stress_{filter}\\w+\\d+_min",
-                    "params": [],
-                    "control_params": [],
-                    "unit": "Pa",
-                    "post": {"type": "Statistics_Stress", "math": "min"},
-                }
-                MeanStressH = {
-                    "name": "MeanStressH",
-                    "csv": "elastic.measures/values.csv",
-                    "rematch": f"Statistics_Stress_{filter}\\w+\\d+_mean",
-                    "params": [],
-                    "control_params": [],
-                    "unit": "Pa",
-                    "post": {"type": "Statistics_Stress", "math": "mean"},
-                }
-                MaxStressH = {
-                    "name": "MaxStressH",
-                    "csv": "elastic.measures/values.csv",
-                    "rematch": f"Statistics_Stress_{filter}\\w+\\d+_max",
-                    "params": [],
-                    "control_params": [],
-                    "unit": "Pa",
-                    "post": {"type": "Statistics_Stress", "math": "max"},
-                }
-                MinVonMisesH = {
-                    "name": "MinVonMisesH",
-                    "csv": "elastic.measures/values.csv",
-                    "rematch": f"Statistics_VonMises_{filter}\\w+\\d+_min",
-                    "params": [],
-                    "control_params": [],
-                    "unit": "Pa",
-                    "post": {"type": "Statistics_VonMises", "math": "min"},
-                }
-                MeanVonMisesH = {
-                    "name": "MeanVonMisesH",
-                    "csv": "elastic.measures/values.csv",
-                    "rematch": f"Statistics_VonMises_{filter}\\w+\\d+_mean",
-                    "params": [],
-                    "control_params": [],
-                    "unit": "Pa",
-                    "post": {"type": "Statistics_VonMises", "math": "mean"},
-                }
-                MaxVonMisesH = {
-                    "name": "MaxVonMisesH",
-                    "csv": "elastic.measures/values.csv",
-                    "rematch": f"Statistics_VonMises_{filter}\\w+\\d+_max",
-                    "params": [],
-                    "control_params": [],
-                    "unit": "Pa",
-                    "post": {"type": "Statistics_VonMises", "math": "max"},
-                }
-
-        if values["type"] == "bitter":
-            # change rematch, params, control_params
-            PowerM = {
-                "name": "PowerM",
-                "csv": "heat.measures/values.csv",
-                "rematch": f"Statistics_PowerM_{filter}\\w*integrate",
-                "post": {"type": "Statistics_PowerM", "math": "integrate"},
-                "unit": "W",
-            }
-            PowerH = {
-                "name": "PowerH",
-                "csv": "heat.measures/values.csv",
-                "rematch": f"Statistics_Power_{filter}\\w+_B\\D_integrate",
-                "post": {"type": "Statistics_Power", "math": "integrate"},
-                "unit": "W",
-            }
-
-            Flux = {
-                "name": "Flux",
-                "csv": "heat.measures/values.csv",
-                "rematch": f"Statistics_Flux_{filter}\\w+_Slit\\d+_integrate",
-                "post": {"type": "Statistics_Flux", "math": "integrate"},
-                "unit": "W",
-            }
-
-            HeatCoeff = {
-                "name": "HeatCoeff",
-                "params": [
-                    ("Dh", f"Dh_{filter}\\w+"),
-                    ("Sh", f"Sh_{filter}\\w+"),
-                    ("hw", f"hw_{filter}\\w+", "\\w+_Slit\\w+", False),
-                    ("hwH", f"hw_{filter}\\w+", "\\w+_Slit\\w+", True),
-                    ("Zmax", f"Zmax_{filter}\\w+", "\\w+_Slit\\w+", False),
-                    ("ZmaxH", f"Zmax_{filter}\\w+", "\\w+_Slit\\w+", True),
-                ],
-                "value": (getHeatCoeff),
-                "unit": "W/m2/K",
-            }
-
-            DT = {
-                "name": "DT",
-                "params": [
-                    ("Tw", f"Tw_{filter}\\w+", "\\w+_Slit\\w+", False),
-                    ("dTw", f"dTw_{filter}\\w+", "\\w+_Slit\\w+", False),
-                    ("TwH", f"Tw_{filter}\\w+", "\\w+_Slit\\w+", True),
-                    ("dTwH", f"dTw_{filter}\\w+", "\\w+_Slit\\w+", True),
-                ],
-                "value": (getDT),
-                "unit": "K",
-            }
-            MinT = {
-                "name": "MinT",
-                "csv": "heat.measures/values.csv",
-                "rematch": f"Statistics_Stat_T_{filter}\\w*min",
-                "params": [],
-                "control_params": [],
-                "unit": "K",
-                "post": {"type": "Statistics_Stat_T", "math": "min"},
-            }
-            MeanT = {
-                "name": "MeanT",
-                "csv": "heat.measures/values.csv",
-                "rematch": f"Statistics_Stat_T_{filter}\\w*mean",
-                "params": [],
-                "control_params": [],
-                "unit": "K",
-                "post": {"type": "Statistics_Stat_T", "math": "mean"},
-            }
-            MaxT = {
-                "name": "MaxT",
-                "csv": "heat.measures/values.csv",
-                "rematch": f"Statistics_Stat_T_{filter}\\w*max",
-                "params": [],
-                "control_params": [],
-                "unit": "K",
-                "post": {"type": "Statistics_Stat_T", "math": "max"},
-            }
-            MinTH = {
-                "name": "MinTH",
-                "csv": "heat.measures/values.csv",
-                "rematch": f"Statistics_T_{filter}\\w+_B\\D_min",
-                "params": [],
-                "control_params": [],
-                "unit": "K",
-                "post": {"type": "Statistics_T", "math": "min"},
-            }
-            MeanTH = {
-                "name": "MeanTH",
-                "csv": "heat.measures/values.csv",
-                "rematch": f"Statistics_T_{filter}\\w+_B\\D_mean",
-                "params": [],
-                "control_params": [],
-                "unit": "K",
-                "post": {"type": "Statistics_T", "math": "mean"},
-            }
-            MaxTH = {
-                "name": "MaxTH",
-                "csv": "heat.measures/values.csv",
-                "rematch": f"Statistics_T_{filter}\\w+_B\\D_max",
-                "params": [],
-                "control_params": [],
-                "unit": "K",
-                "post": {"type": "Statistics_T", "math": "max"},
-            }
-
-            targets[f"{filter}I"] = {
-                "objectif": values["value"],
-                "type": "bitter",
-                "csv": "heat.measures/values.csv",
-                "rematch": f"Statistics_Intensity_{filter}\\w+_integrate",
-                "params": [("N", f"N_{filter}\\w+")],
-                "control_params": [(f"{filter}U", f"U_{filter}\\w+")],
-                "computed_params": [HeatCoeff, DT, Flux, PowerM, PowerH],
-                "unit": "A",
-                "name": f"Intensity{filter}",
-                "post": {"type": "Statistics_Intensity", "math": "integrate"},
-                "waterflow": waterflow.flow_params(
-                    values["flow"]
-                    if os.path.isabs(values["flow"])
-                    else os.path.join(pwd, values["flow"])
-                ),
-            }
-            if "Z" in args.cooling:
-                if e.isMasterRank():
-                    print("add FluxZ for Bitter")
-                FluxZ = {
-                    "name": "FluxZ",
-                    "csv": "heat.measures/values.csv",
-                    "rematch": f"Statistics_FluxZ\\d+_{filter}\\w+_Slit\\d+_integrate",
-                    "post": {"type": "Statistics", "math": "integrate"},
-                    "unit": "W",
-                }
-                targets[f"{filter}I"]["computed_params"].append(FluxZ)
-
-            if "thmagel" in args.cfgfile:
-                MinDispl = {
-                    "name": "MinDispl",
-                    "csv": "elastic.measures/values.csv",
-                    "rematch": f"Statistics_Stat_Displ_{filter}\\w*min",
-                    "params": [],
-                    "control_params": [],
-                    "unit": "m",
-                    "post": {"type": "Statistics_Stat_Displ", "math": "min"},
-                }
-                # MeanDispl = {
-                #     "name": "MeanDispl",
-                #     "csv": "elastic.measures/values.csv",
-                #     "rematch": f"Statistics_Stat_Displ_{filter}\\w*mean",
-                #     "params": [],
-                #     "control_params": [],
-                #     "unit": "m",
-                #     "post": {"type": "Statistics_Stat_Displ", "math": "mean"},
-                # }
-                MaxDispl = {
-                    "name": "MaxDispl",
-                    "csv": "elastic.measures/values.csv",
-                    "rematch": f"Statistics_Stat_Displ_{filter}\\w*max",
-                    "params": [],
-                    "control_params": [],
-                    "unit": "m",
-                    "post": {"type": "Statistics_Stat_Displ", "math": "max"},
-                }
-                MinStress = {
-                    "name": "MinStress",
-                    "csv": "elastic.measures/values.csv",
-                    "rematch": f"Statistics_Stat_Stress_{filter}\\w*min",
-                    "params": [],
-                    "control_params": [],
-                    "unit": "Pa",
-                    "post": {"type": "Statistics_Stat_Stress", "math": "min"},
-                }
-                MeanStress = {
-                    "name": "MeanStress",
-                    "csv": "elastic.measures/values.csv",
-                    "rematch": f"Statistics_Stat_Stress_{filter}\\w*mean",
-                    "params": [],
-                    "control_params": [],
-                    "unit": "Pa",
-                    "post": {"type": "Statistics_Stat_Stress", "math": "mean"},
-                }
-                MaxStress = {
-                    "name": "MaxStress",
-                    "csv": "elastic.measures/values.csv",
-                    "rematch": f"Statistics_Stat_Stress_{filter}\\w*max",
-                    "params": [],
-                    "control_params": [],
-                    "unit": "Pa",
-                    "post": {"type": "Statistics_Stat_Stress", "math": "max"},
-                }
-                MinVonMises = {
-                    "name": "MinVonMises",
-                    "csv": "elastic.measures/values.csv",
-                    "rematch": f"Statistics_Stat_VonMises_{filter}\\w*min",
-                    "params": [],
-                    "control_params": [],
-                    "unit": "Pa",
-                    "post": {"type": "Statistics_Stat_VonMises", "math": "min"},
-                }
-                MeanVonMises = {
-                    "name": "MeanVonMises",
-                    "csv": "elastic.measures/values.csv",
-                    "rematch": f"Statistics_Stat_VonMises_{filter}\\w*mean",
-                    "params": [],
-                    "control_params": [],
-                    "unit": "Pa",
-                    "post": {"type": "Statistics_Stat_VonMises", "math": "mean"},
-                }
-                MaxVonMises = {
-                    "name": "MaxVonMises",
-                    "csv": "elastic.measures/values.csv",
-                    "rematch": f"Statistics_Stat_VonMises_{filter}\\w*max",
-                    "params": [],
-                    "control_params": [],
-                    "unit": "Pa",
-                    "post": {"type": "Statistics_Stat_VonMises", "math": "max"},
-                }
-                MinDisplH = {
-                    "name": "MinDisplH",
-                    "csv": "elastic.measures/values.csv",
-                    "rematch": f"Statistics_Displ_{filter}\\w+_B\\D_min",
-                    "params": [],
-                    "control_params": [],
-                    "unit": "m",
-                    "post": {"type": "Statistics_Displ", "math": "min"},
-                }
-                # MeanDisplH = {
-                #     "name": "MeanDisplH",
-                #     "csv": "elastic.measures/values.csv",
-                #     "rematch": f"Statistics_Displ_{filter}\\w+_B\\D_mean",
-                #     "params": [],
-                #     "control_params": [],
-                #     "unit": "m",
-                #     "post": {"type": "Statistics_Displ", "math": "mean"},
-                # }
-                MaxDisplH = {
-                    "name": "MaxDisplH",
-                    "csv": "elastic.measures/values.csv",
-                    "rematch": f"Statistics_Displ_{filter}\\w+_B\\D_max",
-                    "params": [],
-                    "control_params": [],
-                    "unit": "m",
-                    "post": {"type": "Statistics_Displ", "math": "max"},
-                }
-                MinStressH = {
-                    "name": "MinStressH",
-                    "csv": "elastic.measures/values.csv",
-                    "rematch": f"Statistics_Stress_{filter}\\w+_B\\D_min",
-                    "params": [],
-                    "control_params": [],
-                    "unit": "Pa",
-                    "post": {"type": "Statistics_Stress", "math": "min"},
-                }
-                MeanStressH = {
-                    "name": "MeanStressH",
-                    "csv": "elastic.measures/values.csv",
-                    "rematch": f"Statistics_Stress_{filter}\\w+_B\\D_mean",
-                    "params": [],
-                    "control_params": [],
-                    "unit": "Pa",
-                    "post": {"type": "Statistics_Stress", "math": "mean"},
-                }
-                MaxStressH = {
-                    "name": "MaxStressH",
-                    "csv": "elastic.measures/values.csv",
-                    "rematch": f"Statistics_Stress_{filter}\\w+_B\\D_max",
-                    "params": [],
-                    "control_params": [],
-                    "unit": "Pa",
-                    "post": {"type": "Statistics_Stress", "math": "max"},
-                }
-                MinVonMisesH = {
-                    "name": "MinVonMisesH",
-                    "csv": "elastic.measures/values.csv",
-                    "rematch": f"Statistics_VonMises_{filter}\\w+_B\\D_min",
-                    "params": [],
-                    "control_params": [],
-                    "unit": "Pa",
-                    "post": {"type": "Statistics_VonMises", "math": "min"},
-                }
-                MeanVonMisesH = {
-                    "name": "MeanVonMisesH",
-                    "csv": "elastic.measures/values.csv",
-                    "rematch": f"Statistics_VonMises_{filter}\\w+_B\\D_mean",
-                    "params": [],
-                    "control_params": [],
-                    "unit": "Pa",
-                    "post": {"type": "Statistics_VonMises", "math": "mean"},
-                }
-                MaxVonMisesH = {
-                    "name": "MaxVonMisesH",
-                    "csv": "elastic.measures/values.csv",
-                    "rematch": f"Statistics_VonMises_{filter}\\w+_B\\D_max",
-                    "params": [],
-                    "control_params": [],
-                    "unit": "Pa",
-                    "post": {"type": "Statistics_VonMises", "math": "max"},
-                }
-
-        targets[f"{filter}I"]["relax"] = 0
-        if "relax" in values:
-            targets[f"{filter}I"]["relax"] = values["relax"]
-
-        targets[f"{filter}I"]["inductance"] = 0
-        if "inductance" in values:
-            targets[f"{filter}I"]["inductance"] = values["inductance"]
-
-        targets[f"{filter}I"]["fuzzy"] = 1.0
-        if "heatCorrelationFuzzyFactor" in values:
-            targets[f"{filter}I"]["fuzzy"] = values["heatCorrelationFuzzyFactor"]
-        elif values["type"] == "bitter":
-            targets[f"{filter}I"]["fuzzy"] = 1.7
-
-        postvalues[f"{filter}I"] = {
-            "statsT": [MinT, MeanT, MaxT],
-            "statsTH": [MinTH, MeanTH, MaxTH],
-        }
+        magnet_type = values["type"]
+        
+        # Validate configuration
+        validate_magnet_config(magnet_type, values)
+        
+        # Build regex patterns for this magnet type
+        patterns = build_patterns(magnet_type, filter)
+        
+        # Build power measures (PowerM, PowerH, Flux)
+        power_measures = build_power_measures(magnet_type, filter, patterns)
+        
+        # Build heat parameters (HeatCoeff, DT)
+        heat_params = build_heat_params(magnet_type, filter)
+        
+        # Build temperature measures
+        temp_measures = build_temperature_measures(magnet_type, filter, patterns)
+        
+        # Build mechanical measures if using thermo-mechanical coupling
+        mech_measures = None
         if "thmagel" in args.cfgfile:
-            postvalues[f"{filter}I"]["statsDispl"] = [
-                MinDispl,
-                # MeanDispl,
-                MaxDispl,
-            ]
-            postvalues[f"{filter}I"]["statsStress"] = [MinStress, MeanStress, MaxStress]
-            postvalues[f"{filter}I"]["statsVonMises"] = [
-                MinVonMises,
-                MeanVonMises,
-                MaxVonMises,
-            ]
-            postvalues[f"{filter}I"]["statsDisplH"] = [
-                MinDisplH,
-                # MeanDisplH,
-                MaxDisplH,
-            ]
-            postvalues[f"{filter}I"]["statsStressH"] = [
-                MinStressH,
-                MeanStressH,
-                MaxStressH,
-            ]
-            postvalues[f"{filter}I"]["statsVonMisesH"] = [
-                MinVonMisesH,
-                MeanVonMisesH,
-                MaxVonMisesH,
-            ]
+            mech_measures = build_mechanical_measures(magnet_type, filter, patterns)
+        
+        # Configure target for this magnet
+        targets[f"{filter}I"] = configure_magnet_target(
+            filter, magnet_type, values, pwd, args,
+            patterns, power_measures, heat_params, e
+        )
+        
+        # Configure post-processing values for this magnet
+        postvalues[f"{filter}I"] = configure_magnet_postvalues(
+            temp_measures, mech_measures
+        )
 
     return (targets, postvalues)
 
@@ -811,21 +785,23 @@ def exportResults(
                     if isinstance(_df, pd.DataFrame):
                         _df["I"] = f'{_key}_I={dict_df[target]["target"]}A'
                         _df.set_index("I", inplace=True)
+                        print(f"append to list_dfT (key={_key}, col={len(_df.columns.tolist())}):\n{_df}", flush=True)
                         list_dfT.append(_df)
                 # list_dfT = [_df for keyT, _df in df.items() if isinstance(dfT, pd.DataFrame)]
                 if args.debug:
                     print(f"keys={[keyT for keyT, dfT in df.items()]}", flush=True)
                     for _dft in list_dfT:
                         print(tabulate(_dft, headers="keys"), flush=True)
+                        print("\n", flush=True)
                 dfT = pd.concat(list_dfT, sort=True)
                 if args.debug:
                     print(f"dfT.keys={dfT.keys()}", flush=True)
-                    print(f"dfT={dfT}", flush=True)
+                    print(f"dfT:\n{dfT}", flush=True)
                 dfT_T = dfT.T
                 dfT_T = dfT_T.reindex(index=natsorted(dfT_T.index))
                 if args.debug:
                     print(f"dfT_T.keys={dfT.keys()}", flush=True)
-                    print(f"dfT_T={dfT_T}", flush=True)
+                    print(f"dfT_T:\n{dfT_T}", flush=True)
                 if global_df:  # if commissioning, store in global_df
                     global_df[mname][key] = pd.concat([global_df[mname][key], dfT])
                 else:  # if cli, df to csv

@@ -17,6 +17,32 @@ Python workflows for coupled electromagnetic-thermal simulations of high-field m
 - Python >= 3.11
 - MPI implementation (OpenMPI or MPICH)
 
+> **Feel installation**
+> see installation notes from [official feelpp doc](https://docs.feelpp.org/user/latest/install/get.html)
+>
+> * Add the Feelpp apt repository
+> * Install the following packages
+>    ```bash
+>    sudo apt install python3-feelpp-toolboxes-coefficientformpdes=0.111.0~preview.11-1 \
+>        libfeelpp-toolboxes1-coefficientformpdes=0.111.0~preview.11-1 \
+>        libfeelpp-toolboxes1-core=0.111.0~preview.11-1 \
+>        libfeelpp1=0.111.0~preview.11-1 \
+>        python3-feelpp-toolboxes-core=0.111.0~preview.11-1 \
+>        libfeelpp1=0.111.0~preview.11-1 \
+>        python3-feelpp=0.111.0~preview.11-1 \
+>        python3-feelpp-toolboxes-thermoelectric=0.111.0~preview.11-1 \
+>        libfeelpp-toolboxes1-thermoelectric=0.111.0~preview.11-1 \
+>        libfeelpp-toolboxes1-heat=0.111.0~preview.11-1 \
+>        libfeelpp-toolboxes1-electric=0.111.0~preview.11-1 \
+>        python3-feelpp-toolboxes-electric=0.111.0~preview.11-1 \
+>        python3-feelpp-toolboxes-heat=0.111.0~preview.11-1 \
+>        python3-feelpp-toolboxes-solid=0.111.0~preview.11-1  \
+>        libfeelpp-toolboxes1-solid=0.111.0~preview.11-1 \
+>        libstdc++-14-dev
+>   ```
+>
+
+
 ### Python Dependencies
 See `pyproject.toml` for complete list. Major dependencies:
 - numpy, scipy, pandas
@@ -71,6 +97,18 @@ python -m python_magnetworkflows.cli \
   M9Bitters-cfpdes-thelec-Axi-sim.cfg \
   --cooling mean \
   --eps 1.e-5
+
+> **mdata** structure
+>
+> mdata is a dictonnary that holds informations about the magnets configuration:
+> The main keys are the name of the magnet.
+> The magnet config is stored in a sub-dictionnaty with:
+> * value: the current value in A
+> * type: the type of xxx for magnet (helix: Insert|bitter: Bitters|supra: Supras) -- see [python_magnetgeo](https://github.com/MagnetDB/python_magnetgeo) for details
+> * filter: optional,
+> * flow: a json file that contains parameters for water cooling -- see [python_magnetcooling](https://github.com/MagnetDB/python_magnetcooling) for details
+> 
+> support for type=supra not implemented
 
 # Commissioning workflow (multiple current steps)
 python -m python_magnetworkflows.commissioning \

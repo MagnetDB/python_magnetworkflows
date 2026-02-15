@@ -10,28 +10,29 @@ control_params from parameters section,
 value: name of the method to compute name
 """
 
+import os
 import pandas as pd
 
 
 def getTarget(
     targetdefs: dict, name: str, csv: pd.DataFrame, debug: bool = False
 ) -> pd.DataFrame:
-    # print(f"getTarget: workingdir={ os.getcwd() } name={name}", flush=True)
+    print(f"*** getTarget: cwd={ os.getcwd() } name={name}", flush=True)
 
     defs = targetdefs[name]
 
     if debug:
-        print(f"getTarget:{defs['rematch']} name={name}", flush=True)
-        print(f"defs: {defs}", flush=True)
-        print(f"csv path: {defs['csv']}", flush=True)
-        print(f"rematch: {defs['rematch']}", flush=True)
+        print(f"getTarget: name={name}, csv_path={defs['csv']}, rematch={defs['rematch']}", flush=True)
 
-    if debug:
-        # print(f"csv={csv}", flush=True)
-        for key in csv.columns.values.tolist():
-            print(key, flush=True)
+        print("csv:")
+        for key in csv.columns:
+            print(key, csv[key].tolist(), flush=True)
 
     _filtered_df = csv.filter(regex=(defs["rematch"]))
+    if debug:
+        print("filtered_csv:")
+        for key in _filtered_df.columns:
+            print(key, _filtered_df[key].tolist(), flush=True)
 
     # rename columns
     dict_columns = {}
@@ -42,13 +43,14 @@ def getTarget(
     df = _filtered_df.copy(deep=True).rename(columns=dict_columns)
 
     if debug:
-        for key in df.columns.values.tolist():
-            print(key, flush=True)
+        print(f"getTarget: df for {name}", flush=True)
+        for key in df.columns:
+            print(key, df[key].tolist(), flush=True)
 
     del dict_columns
     del defs
     del _filtered_df
-
+    print(f"*** getTarget: done for {name}\n", flush=True)
     return df
 
 
