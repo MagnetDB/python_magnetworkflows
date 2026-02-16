@@ -47,7 +47,7 @@ def main():
         nargs="+",
         metavar="frictions",
         type=str,
-        choices=["Constant", "Blasius", "Filonenko", "Colebrook", "Swanee"],
+        choices=["Constant", "Blasius", "Filonenko", "Colebrook", "Swamee"],
         default=["Constant"],
     )
     parser.add_argument(

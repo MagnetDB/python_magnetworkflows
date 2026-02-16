@@ -220,7 +220,7 @@ def Colebrook(Re: float, Dh: float, f: float, rugosity: float) -> float:
     return cf
 
 
-def Swanee(Re: float, Dh: float, f: float, rugosity: float) -> float:
+def Swamee(Re: float, Dh: float, f: float, rugosity: float) -> float:
     val = f
     isOK = False
     it = 0
@@ -238,9 +238,9 @@ def Swanee(Re: float, Dh: float, f: float, rugosity: float) -> float:
             break
 
     if isOK != True:
-        raise RuntimeError(f"Swanee: cf failed to converge")
+        raise RuntimeError(f"Swamee: cf failed to converge")
     cf = val
-    # print(f"Swanee={cf}, it={it}")
+    # print(f"Swamee={cf}, it={it}")
     return cf
 
 
@@ -263,7 +263,7 @@ def Uw(
         "Blasius": Blasius,
         "Filonenko": Filonenko,
         "Colebrook": Colebrook,
-        "Swanee": Swanee,
+        "Swamee": Swamee,
     }
 
     U = uguess
