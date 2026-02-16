@@ -4,4 +4,4 @@ python -m python_magnetworkflows.cli \
   Toretest-cfpdes-thmagel-nonlinear-Axi-sim.cfg \
   --cooling mean \
   --eps "1.e-5" \
-  --debug
+  --debug > Toretest-cfpdes-thmagel-nonlinear-Axi-sim.log 2>&1
