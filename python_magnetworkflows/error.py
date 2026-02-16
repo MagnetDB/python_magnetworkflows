@@ -324,7 +324,46 @@ def compute_error(
 
         PowerM = dict_df[target]["PowerM"].iloc[-1, 0]
         SPower_H = dict_df[target]["PowerH"].iloc[-1].sum()
+        if args.cooling in ["gradHZ", "gradHZH"]:
+            # Create Flux dataframe by aggregating FluxZ columns per channel/slit
+            print(f"FluxZ: {dict_df[target]['FluxZ'].keys()}", flush=True)
+            print(f"FluxZ: {dict_df[target]['FluxZ']}", flush=True)
+            
+            # Check for negative values in FluxZ
+            fluxz_data = dict_df[target]['FluxZ'].iloc[-1]
+            negative_cols = fluxz_data[fluxz_data < 0]
+            if not negative_cols.empty:
+                print(f"WARNING {target}: FluxZ contains negative values in columns: {negative_cols.to_dict()}", flush=True)
+            
+            # Get channel/slit names from Dh parameters
+            flux_by_channel = {}
+            for dh_param in p_params["Dh"]:
+                cname = dh_param.replace("Dh_", "")
+                # Create regex pattern to match FluxZ columns for this channel
+                # e.g., "M9_Bi_Slit0" -> match "FluxZ0_M9_Bi_Slit0", "FluxZ1_M9_Bi_Slit0", etc.
+                pattern = re.compile(rf"FluxZ\d+_{re.escape(cname)}$")
+                
+                # Find all matching FluxZ columns
+                matching_cols = [
+                    col for col in dict_df[target]["FluxZ"].columns
+                    if pattern.match(col)
+                ]
+                
+                if matching_cols:
+                    # Sum all FluxZ columns for this channel
+                    flux_by_channel[cname] = dict_df[target]["FluxZ"][matching_cols].iloc[-1].sum()
+                    if args.debug:
+                        print(f"{target}: {cname} - matched columns: {matching_cols}, total flux: {flux_by_channel[cname]:.3f}", flush=True)
+                else:
+                    if args.debug:
+                        print(f"{target}: WARNING - no FluxZ columns found for {cname}", flush=True)
+            
+            # Create Flux dataframe from aggregated values
+            dict_df[target]["Flux"] = pd.DataFrame([flux_by_channel])
+            print(f"{target}: created Flux dataframe from FluxZ with columns: {dict_df[target]['Flux'].columns.values.tolist()}", flush=True)
+            
         SFlux_H = dict_df[target]["Flux"].iloc[-1].sum()
+        print(f"{target}: SFlux_H={SFlux_H:.3f}", flush=True)
 
         if args.debug:
             print(f'Flux: {type(dict_df[target]["Flux"])}', flush=True)
@@ -452,6 +491,7 @@ def compute_error(
 
             for i, (d, s) in enumerate(zip(Dh, Sh)):
                 cname = p_params["Dh"][i].replace("Dh_", "")
+                print(f"*** Channel[{i}]: {cname}", flush=True)
                 PowerCh = dict_df[target]["Flux"][cname].iloc[-1]
 
                 # when gradHZ:
@@ -459,17 +499,20 @@ def compute_error(
                 Tw_z_old = []
                 hw_z_old = []
                 if FluxZ is not None:
-                    print(f"{target}: channel[{i}]: get Tw_z_old and hw_z_old for {cname}", flush=True)
+                    print(f"FluxZ {target}: channel[{i}]: get Tw_z_old and hw_z_old for {cname}", flush=True)
                     csvfile = TwH[i]["filename"].replace("$cfgdir", basedir)
-                    print(f"{target}: channel[{i}]: read csv {csvfile} for TwH[{i}]", flush=True)
+                    print(f"FluxZ {target}: channel[{i}]: read csv {csvfile} for TwH[{i}]", flush=True)
                     Tw_data = pd.read_csv(csvfile, sep=",")
-                    print(f"{target}: channel[{i}]: Tw_data columns={Tw_data.columns.values.tolist()}", flush=True)
+                    print(f"FluxZ {target}: channel[{i}]: Tw_data columns={Tw_data.columns.values.tolist()}", flush=True)
                     Tw0 = Tw_data["Tw"].iloc[0]
                     Tw_z_old = Tw_data["Tw"].to_list()
+                    # when not gradHZH
                     if not "hw" in Tw_data:
-                        print(f"{target}: channel[{i}]: no hw column in Tw_data, set hw=80000 W/m2/K", flush=True)
-                        Tw_data["hw"] = [80000] * len(Tw_z_old)
-                    hw_z_old = Tw_data["hw"].to_list()
+                        # Use hwH[i] if it's a numeric value, otherwise default to 80000
+                        hw_init = hwH[i] if not isinstance(hwH[i], dict) else 80000
+                        print(f"FluxZ hw=cst {target}: channel[{i}]: no hw column in Tw_data, set hw={hw_init} W/m2/K (type(hwH[{i}])={type(hwH[i])})", flush=True)
+                        Tw_data["hw"] = [hw_init] * len(Tw_z_old)
+                    hw_z_old = Tw_data["hw"].to_list() 
                     zsections = Tw_data["Z"].to_list()
                     dTwH[i] = Tw_z_old[-1] - Tw_z_old[0]
 
@@ -487,6 +530,8 @@ def compute_error(
                         FluxZ.at[FluxZ.index[-1], f"FluxZ{i}_{cname}"]
                         for i in range(len(key_dz))
                     ]
+                    print(f"FluxZ {target}: channel[{i}]: FluxCh_dz for {cname}=\n{FluxCh_dz}", flush=True)
+
                     htol = 1e-3
                     assert abs(1 - sum(FluxCh_dz) / PowerCh) <= htol, (
                         f"Sum(FluxZ)!=Flux[{cname}]:{abs(1 - sum(FluxCh_dz) / PowerCh)}>{htol}; PowerCh={PowerCh} Flux_H={sum(FluxCh_dz)}"
@@ -496,8 +541,10 @@ def compute_error(
                 tmp_dTwi = dTwH[i]
                 tmp_hi_old = 0.0
                 if isinstance(hwH[i], dict):
+                    print(f"{target}: channel[{i}]: hwH is dict, get tmp_hi_old from hw_z_old[0]", flush=True)
                     tmp_hi_old = hw_z_old[0]
                 else:
+                    print(f"{target}: channel[{i}]: hwH is not dict, get tmp_hi_old from hwH[{i}]", flush=True)
                     tmp_hi_old = hwH[i]
                 print(
                     f"\ncname={cname}, i={i}, d={d:.5f}, s={s:.6e}, L={Lh[i]:.3f}, U={U:.3f}, PowerCh={PowerCh:.3f}, tmp_dTwi={tmp_dTwi:.3f}, tmp_hi_old={tmp_hi_old:.3f}",
@@ -509,19 +556,26 @@ def compute_error(
                 tmp_hi = tmp_hi_old
                 tmp_Twh = 0.0
                 if isinstance(TwH[i], dict):
+                    print(f"{target}: channel[{i}]: TwH is dict, get tmp_Twh from Tw_z[0]", flush=True)
                     tmp_Twh = Tw_z[0]
                 else:
+                    print(f"{target}: channel[{i}]: TwH is not dict, get tmp_Twh from TwH[{i}]", flush=True)
                     tmp_Twh = TwH[i]
+
+                print(f"{target}: channel[{i}]: initial tmp_Twh={tmp_Twh:.3f}, tmp_dTwi={tmp_dTwi:.3f}, tmp_hi_old={tmp_hi_old:.3f}", flush=True)
                 while True:
                     tmp_flow = U * s
                     tmp_dTwi = getDT(
                         tmp_flow, PowerCh, tmp_Twh + tmp_dTwi / 2.0, Pressure
                     )
+                    print(f"\tFluxZ {target}: channel[{i}]: tmp_dTwi={tmp_dTwi:.3f}", flush=True)
                     if FluxZ is not None:
+                        print(f"FluxZ {target}: channel[{i}]: compute Tw_z and hw_z for {cname}", flush=True)
                         for k, flux in enumerate(FluxCh_dz):
                             Pw = Pressure - dPressure * (
                                 zsections[k] - zsections[0]
                             ) / (zsections[-1] - zsections[0])
+                            print(f"\t\tFluxZ {target}: channel[{i}]: compute Tw_z[{k}] for {cname} with Pw={Pw:.3f}, flux={flux}, Tw_z_old[{k}]={Tw_z_old[k]:.3f}, Tw_z_old[{k+1}]={Tw_z_old[k+1]:.3f}", flush=True)
                             dTw_z = getDT(
                                 tmp_flow,
                                 flux,
@@ -529,6 +583,7 @@ def compute_error(
                                 Pw,
                             )
                             Tw_z[k + 1] = Tw_z[k] + dTw_z
+                            print(f"\t\tFluxZ {target}: channel[{i}]: computed Tw_z[{k+1}]={Tw_z[k+1]:.3f} with Tw_z[{k}]={Tw_z[k]:.3f}, dTw_z={dTw_z:.3f}", flush=True)
 
                         for k in range(len(Tw_z)):
                             Pw = Pressure - dPressure * (
@@ -548,10 +603,12 @@ def compute_error(
                             )
                             if args.debug:
                                 print(
-                                    f"Tw_z[{k}]={Tw_z[k]}, _h={hw_z[k]}, Pw={Pw}, Pressure={Pressure}, dP={dPressure}",
+                                    f"\t\tFluxZ {target}: channel[{i}]: Tw_z[{k}]={Tw_z[k]}, _h={hw_z[k]}, Pw={Pw}, Pressure={Pressure}, dP={dPressure}",
                                     flush=True,
                                 )
 
+                    print(f"\tFluxZ {target}: channel[{i}]: compute tmp_hi for {cname}", flush=True)
+                    print(f"\tFluxZ {target}: d={d:.5f}, L={Lh[i]:.3f}, U={U:.3f}, Tw={tmp_Twh + tmp_dTwi / 2.0:.3f}, Pressure={Pressure}, dPressure={dPressure}, model={args.heatcorrelation}, friction={args.friction}, fuzzy={fuzzy}, pextra={pextra}", flush=True)
                     tmp_hi = getHeatCoeff(
                         d,
                         Lh[i],
@@ -564,6 +621,7 @@ def compute_error(
                         fuzzy=fuzzy,
                         pextra=pextra
                     )
+                    print(f"\tFluxZ {target}: channel[{i}]: cname={cname}, i={i}, tmp_hi={tmp_hi:.3f}, tmp_Twh={tmp_Twh:.3f}, tmp_dTwi={tmp_dTwi:.3f}, Pressure={Pressure}, dPressure={dPressure}", flush=True)
                     Steam = steam(tmp_Twh + tmp_dTwi / 2.0, Pressure)
                     tmp_U, cf = Uw(
                         Steam,
@@ -577,7 +635,7 @@ def compute_error(
                     n_tmp_flow = tmp_U * s
                     if args.debug:
                         print(
-                            f"tmp_flow={tmp_flow:.6e}, n_tmp_flow={n_tmp_flow:.6e}, U={U:.3f}, tmp_U={tmp_U:.3f}, TwH[{i}]={tmp_Twh:.3f}, tmp_dTwi={tmp_dTwi:.3f}",
+                            f"\tFluxZ {target}: channel[{i}]: tmp_flow={tmp_flow:.6e}, n_tmp_flow={n_tmp_flow:.6e}, U={U:.3f}, tmp_U={tmp_U:.3f}, TwH[{i}]={tmp_Twh:.3f}, tmp_dTwi={tmp_dTwi:.3f}",
                             flush=True,
                         )
                     U = tmp_U
@@ -632,7 +690,11 @@ def compute_error(
 
                 if FluxZ is not None:
                     csvfile = TwH[i]["filename"].replace("$cfgdir", basedir)
-                    Tw_data.to_csv(csvfile, index=False)
+                    print(f"{target}: channel[{i}]: write csv {csvfile} for TwH[{i}], Tw_data columns={Tw_data.columns.values.tolist()}", flush=True)
+                    # Drop hw column if it exists before saving
+                    if args.cooling == "gradHZ":
+                        Tw_data_save = Tw_data.drop(columns=["hw"], errors="ignore")
+                    Tw_data_save.to_csv(csvfile, index=False)
                 Steam = steam(tmp_Twh + dTwi[i] / 2.0, Pressure)
                 VolMass[i] = Steam.rho
                 SpecHeat[i] = Steam.cp * 1.0e3
