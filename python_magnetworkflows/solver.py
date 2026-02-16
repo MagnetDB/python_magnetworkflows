@@ -269,14 +269,14 @@ def solve(
 
     while it < args.itermax:
         if e.isMasterRank():
-            new_json = jsonmodel.replace(".json", f"-it{it}-{post[:-1]}.json")
+            new_json = jsonmodel.replace(".json", f"-iter={it}-{post[:-1]}.json")
             print(f"make a copy of files for it={it}, new_json={new_json}", flush=True)
 
             with open(jsonmodel, "r") as jsonfile:
                 dict_json = json.loads(jsonfile.read())
                 dict_json["Meshes"]["cfpdes"]["Fields"]["U"][
                     "filename"
-                ] = f"$cfgdir/U-it{it}-{post[:-1]}.h5"
+                ] = f"$cfgdir/U-iter={it}-{post[:-1]}.h5"
                 csvfiles = np.unique(
                     [
                         value["filename"]
@@ -287,12 +287,12 @@ def solve(
                 for file in csvfiles:
                     _file = file.replace("$cfgdir", basedir)
                     if e.isMasterRank():
-                        shutil.copy2(f"{_file}", f"{_file}-it{it}-{post[:-1]}.csv")
+                        shutil.copy2(f"{_file}", f"{_file}-iter={it}-{post[:-1]}.csv")
 
             with open(new_json, "w+") as jsonfile:
                 jsonfile.write(json.dumps(dict_json, indent=4))
 
-            shutil.copy2(f"{basedir}/U.h5", f"{basedir}/U-it{it}-{post[:-1]}.h5")
+            shutil.copy2(f"{basedir}/U.h5", f"{basedir}/U-iter={it}-{post[:-1]}.h5")
             print(f"start calc for it={it}", flush=True)
             if "Z" not in args.cooling and args.debug and e.isMasterRank():
                 print("Parameters:", f.modelProperties().parameters())
