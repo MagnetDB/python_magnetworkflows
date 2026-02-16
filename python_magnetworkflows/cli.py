@@ -8,6 +8,7 @@ import argparse
 import configparser
 import json
 import re
+from enum import Enum
 from warnings import simplefilter
 
 import pandas as pd
@@ -88,8 +89,26 @@ def options(description: str, epilog: str):
     return parser
 
 
+class MagnetType(Enum):
+    """Enum for magnet types."""
+    INSERT = "helix"
+    BITTERS = "bitter"
+    SUPRAS = "supra"  # Placeholder for future implementation
+
+    @classmethod
+    def from_string(cls, value: str) -> 'MagnetType':
+        """Convert string to MagnetType enum."""
+        value_lower = value.lower()
+        for member in cls:
+            if member.value == value_lower:
+                return member
+        raise ValueError(
+            f"Invalid magnet type '{value}'. "
+            f"Must be one of: {', '.join([m.value for m in cls])}"
+        )
+
+
 # Configuration constants
-MAGNET_TYPES = {"helix", "bitter"}
 DEFAULT_FUZZY_FACTOR_HELIX = 1.0
 DEFAULT_FUZZY_FACTOR_BITTER = 1.7
 DEFAULT_RELAX = 0
@@ -97,22 +116,18 @@ DEFAULT_INDUCTANCE = 0
 DEFAULT_PEXTRA = 1
 
 
-def validate_magnet_config(magnet_type: str, values: dict) -> None:
+def validate_magnet_config(magnet_type: MagnetType, values: dict) -> None:
     """
     Validate magnet configuration parameters.
     
     Args:
-        magnet_type: Type of magnet ('helix' or 'bitter')
+        magnet_type: Type of magnet (MagnetType.INSERT or MagnetType.BITTERS)
         values: Configuration values dictionary
         
     Raises:
         ValueError: If configuration is invalid
     """
-    if magnet_type not in MAGNET_TYPES:
-        raise ValueError(
-            f"Invalid magnet type '{magnet_type}'. "
-            f"Must be one of: {', '.join(MAGNET_TYPES)}"
-        )
+    # magnet_type is already validated by MagnetType.from_string()
     
     required_keys = ["type", "value", "flow"]
     missing_keys = [key for key in required_keys if key not in values]
@@ -158,18 +173,18 @@ def validate_magnet_config(magnet_type: str, values: dict) -> None:
             )
 
 
-def build_patterns(magnet_type: str, filter: str) -> dict:
+def build_patterns(magnet_type: MagnetType, filter: str) -> dict:
     """
     Build regex patterns for a specific magnet type.
     
     Args:
-        magnet_type: Either 'helix' or 'bitter'
+        magnet_type: Either MagnetType.INSERT or MagnetType.BITTERS
         filter: Filter prefix for the magnet
         
     Returns:
         Dictionary of pattern names to regex strings
     """
-    if magnet_type == "helix":
+    if magnet_type == MagnetType.INSERT:
         return {
             "power_m": rf"Statistics_PowerM_{filter}\w*integrate",
             "power_h": rf"Statistics_Power_{filter}H\d+_integrate",
@@ -199,7 +214,7 @@ def build_patterns(magnet_type: str, filter: str) -> dict:
             "vonmises_mean": rf"Statistics_VonMises_{filter}\w+\d+_mean",
             "vonmises_max": rf"Statistics_VonMises_{filter}\w+\d+_max",
         }
-    elif magnet_type == "bitter":
+    elif magnet_type == MagnetType.BITTERS:
         return {
             "power_m": rf"Statistics_PowerM_{filter}\w*integrate",
             "power_h": rf"Statistics_Power_{filter}\w+_B\d+_integrate",
@@ -270,12 +285,12 @@ def create_measure_dict(
     }
 
 
-def build_power_measures(magnet_type: str, filter: str, patterns: dict) -> dict:
+def build_power_measures(magnet_type: MagnetType, filter: str, patterns: dict) -> dict:
     """
     Build power-related measures (PowerM, PowerH, Flux, FluxZ).
     
     Args:
-        magnet_type: Either 'helix' or 'bitter'
+        magnet_type: Either MagnetType.INSERT or MagnetType.BITTERS
         filter: Filter prefix for the magnet
         patterns: Dictionary of regex patterns from build_patterns()
         
@@ -302,18 +317,18 @@ def build_power_measures(magnet_type: str, filter: str, patterns: dict) -> dict:
     return measures
 
 
-def build_heat_params(magnet_type: str, filter: str) -> dict:
+def build_heat_params(magnet_type: MagnetType, filter: str) -> dict:
     """
     Build heat coefficient and temperature parameters.
     
     Args:
-        magnet_type: Either 'helix' or 'bitter'
+        magnet_type: Either MagnetType.INSERT or MagnetType.BITTERS
         filter: Filter prefix for the magnet
         
     Returns:
         Dictionary containing HeatCoeff and DT parameter definitions
     """
-    if magnet_type == "helix":
+    if magnet_type == MagnetType.INSERT:
         heat_coeff = {
             "name": "HeatCoeff",
             "params": [
@@ -338,7 +353,7 @@ def build_heat_params(magnet_type: str, filter: str) -> dict:
             "value": (getDT),
             "unit": "K",
         }
-    elif magnet_type == "bitter":
+    elif magnet_type == MagnetType.BITTERS:
         heat_coeff = {
             "name": "HeatCoeff",
             "params": [
@@ -369,12 +384,12 @@ def build_heat_params(magnet_type: str, filter: str) -> dict:
     return {"HeatCoeff": heat_coeff, "DT": dt}
 
 
-def build_temperature_measures(magnet_type: str, filter: str, patterns: dict) -> dict:
+def build_temperature_measures(magnet_type: MagnetType, filter: str, patterns: dict) -> dict:
     """
     Build all temperature-related measures (MinT, MeanT, MaxT, MinTH, MeanTH, MaxTH).
     
     Args:
-        magnet_type: Either 'helix' or 'bitter'
+        magnet_type: Either MagnetType.INSERT or MagnetType.BITTERS
         filter: Filter prefix for the magnet
         patterns: Dictionary of regex patterns from build_patterns()
         
@@ -413,12 +428,12 @@ def build_temperature_measures(magnet_type: str, filter: str, patterns: dict) ->
     return measures
 
 
-def build_mechanical_measures(magnet_type: str, filter: str, patterns: dict) -> dict:
+def build_mechanical_measures(magnet_type: MagnetType, filter: str, patterns: dict) -> dict:
     """
     Build all mechanical-related measures (displacement, stress, von Mises).
     
     Args:
-        magnet_type: Either 'helix' or 'bitter'
+        magnet_type: Either MagnetType.INSERT or MagnetType.BITTERS
         filter: Filter prefix for the magnet
         patterns: Dictionary of regex patterns from build_patterns()
         
@@ -499,7 +514,7 @@ def build_mechanical_measures(magnet_type: str, filter: str, patterns: dict) -> 
 
 def configure_magnet_target(
     filter: str,
-    magnet_type: str,
+    magnet_type: MagnetType,
     values: dict,
     pwd: str,
     args,
@@ -513,7 +528,7 @@ def configure_magnet_target(
     
     Args:
         filter: Filter prefix for the magnet
-        magnet_type: Either 'helix' or 'bitter'
+        magnet_type: Either MagnetType.INSERT or MagnetType.BITTERS
         values: Magnet configuration values from args.mdata
         pwd: Working directory path
         args: Command-line arguments
@@ -526,10 +541,12 @@ def configure_magnet_target(
         Target configuration dictionary
     """
     # Determine target parameters based on magnet type
-    if magnet_type == "helix":
+    if magnet_type == MagnetType.INSERT:
         target_rematch = f"Statistics_Intensity_{filter}H\\w+_integrate"
-    elif magnet_type == "bitter":
+    elif magnet_type == MagnetType.BITTERS:
         target_rematch = f"Statistics_Intensity_{filter}\\w+_integrate"
+    elif magnet_type == MagnetType.SUPRAS:
+        raise NotImplementedError("SUPRAS magnet type is not yet implemented")
     else:
         raise ValueError(f"Unknown magnet type: {magnet_type}")
     
@@ -539,7 +556,7 @@ def configure_magnet_target(
     # Build base target configuration
     target_config = {
         "objectif": values["value"],
-        "type": magnet_type,
+        "type": magnet_type.value,
         "csv": "heat.measures/values.csv",
         "rematch": target_rematch,
         "params": target_params,
@@ -564,7 +581,7 @@ def configure_magnet_target(
     # Add FluxZ if using Z-gradient cooling
     if "Z" in args.cooling:
         if e.isMasterRank():
-            print(f"add FluxZ for {magnet_type}")
+            print(f"add FluxZ for {magnet_type.value}")
         FluxZ = create_measure_dict(
             "FluxZ",
             "heat.measures/values.csv",
@@ -582,7 +599,7 @@ def configure_magnet_target(
     # Set fuzzy factor (default depends on magnet type)
     if "heatCorrelationFuzzyFactor" in values:
         target_config["fuzzy"] = values["heatCorrelationFuzzyFactor"]
-    elif magnet_type == "bitter":
+    elif magnet_type == MagnetType.BITTERS:
         target_config["fuzzy"] = DEFAULT_FUZZY_FACTOR_BITTER
     else:
         target_config["fuzzy"] = DEFAULT_FUZZY_FACTOR_HELIX
@@ -676,7 +693,7 @@ def loadMdata(e, pwd: str, args, targets: dict, postvalues: dict):
             print(f"mname={mname}, values={values}")
         
         filter = values.get("filter", "")
-        magnet_type = values["type"]
+        magnet_type = MagnetType.from_string(values["type"])
         
         # Validate configuration
         validate_magnet_config(magnet_type, values)
