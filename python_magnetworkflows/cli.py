@@ -71,10 +71,28 @@ def options(description: str, epilog: str):
         default=1.0e-3,
     )
     parser.add_argument(
+        "--heatTol",
+        help="specify heat tolerance for convergence (default: 1.e-2)",
+        type=float,
+        default=1.0e-2,
+    )
+    parser.add_argument(
         "--itermax",
         help="specify maximum iteration (default: 10)",
         type=int,
         default=10,
+    )
+    parser.add_argument(
+        "--update-cooling",
+        help="update heat exchange coefficient and water temperature during iterations (default: True)",
+        action="store_true",
+        default=True,
+    )
+    parser.add_argument(
+        "--no-update-cooling",
+        help="do not update heat exchange coefficient and water temperature during iterations",
+        action="store_false",
+        dest="update_cooling",
     )
     parser.add_argument("--reloadcfg", help="get feelpp config", action="store_true")
     parser.add_argument("--debug", help="activate debug", action="store_true")

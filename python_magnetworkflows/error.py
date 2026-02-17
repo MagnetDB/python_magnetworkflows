@@ -420,183 +420,185 @@ def compute_error(
 
         del sortedflux
 
-        flow = values["waterflow"]
-        Pressure = flow.pressure(abs(objectif))
-        dPressure = flow.dpressure(abs(objectif))
+        if args.update_cooling:
+            flow = values["waterflow"]
+            Pressure = flow.pressure(abs(objectif))
+            dPressure = flow.dpressure(abs(objectif))
 
-        Dh = [parameters[p] for p in p_params["Dh"]]
-        Sh = [parameters[p] for p in p_params["Sh"]]
-        if args.debug:
-            i = 0
-            for p in p_params["Dh"]:
-                print(f"Dh[{i}]: key={p}, value={parameters[p]}", flush=True)
-                i += 1
-            print(f'Dh: {p_params["Dh"]}', flush=True)
-
-        Umean = flow.umean(abs(objectif), sum(Sh))  # math.fsum(Sh)
-        dT_global = getDT(
-            Umean * sum(Sh),
-            PowerM,
-            290.75,
-            Pressure,
-        )
-        print(
-            f"{target}: it={it}, objectif={abs(objectif):.3f}, Umean={Umean:.3f}, Flow={flow.flow(abs(objectif)):.3f}, S={sum(Sh):.3f}, dT_global={dT_global:.3f}, Power={PowerM:.3f}",
-            flush=True,
-        )
-        dict_df[target]["flow"] = flow.flow(abs(objectif))
-
-        error_dT = []
-        error_h = []
-        # per Channel/Slit
-        if "H" in args.cooling:
-            TwH = [parameters[p] for p in p_params["TwH"]]
-            dTwH = [parameters[p] for p in p_params["dTwH"]]
-            hwH = [parameters[p] for p in p_params["hwH"]]
+            Dh = [parameters[p] for p in p_params["Dh"]]
+            Sh = [parameters[p] for p in p_params["Sh"]]
             if args.debug:
-                for p in p_params["TwH"]:
-                    print(f"TwH: parameters[{p}]={parameters[p]}", flush=True)
-                # print(f'TwH: {TwH} ({len(TwH)}/{len(Dh)})', flush=True)
-                # print(f"dTwH: {dTwH} ({len(dTwH)}/{len(Dh)})", flush=True)
-                # print(f'hwH: {hwH} ({len(hwH)}/{len(Dh)})', flush=True)
-            Lh = [
-                abs(parameters[p] - parameters[p.replace("max", "min")])
-                for p in p_params["ZmaxH"]
-            ]
-            if args.debug:
-                for i, p in enumerate(p_params["hwH"]):
-                    print(f"hwH[{i}]: key={p}, value={parameters[p]}", flush=True)
+                i = 0
+                for p in p_params["Dh"]:
+                    print(f"Dh[{i}]: key={p}, value={parameters[p]}", flush=True)
+                    i += 1
+                print(f'Dh: {p_params["Dh"]}', flush=True)
 
-                # TODO verify if data are consistant??
-                # assert len(Dh) == len(TwH) == len(dTwH) == len(hwH)
+            Umean = flow.umean(abs(objectif), sum(Sh))  # math.fsum(Sh)
+            dT_global = getDT(
+                Umean * sum(Sh),
+                PowerM,
+                290.75,
+                Pressure,
+            )
+            print(
+                f"{target}: it={it}, objectif={abs(objectif):.3f}, Umean={Umean:.3f}, Flow={flow.flow(abs(objectif)):.3f}, S={sum(Sh):.3f}, dT_global={dT_global:.3f}, Power={PowerM:.3f}",
+                flush=True,
+            )
+            dict_df[target]["flow"] = flow.flow(abs(objectif))
 
-            if not dTwH:
-                dTwH = [0.0] * len(Dh)
+            error_dT = []
+            error_h = []
+            # per Channel/Slit
+            if "H" in args.cooling:
+                TwH = [parameters[p] for p in p_params["TwH"]]
+                dTwH = [parameters[p] for p in p_params["dTwH"]]
+                hwH = [parameters[p] for p in p_params["hwH"]]
+                if args.debug:
+                    for p in p_params["TwH"]:
+                        print(f"TwH: parameters[{p}]={parameters[p]}", flush=True)
+                    # print(f'TwH: {TwH} ({len(TwH)}/{len(Dh)})', flush=True)
+                    # print(f"dTwH: {dTwH} ({len(dTwH)}/{len(Dh)})", flush=True)
+                    # print(f'hwH: {hwH} ({len(hwH)}/{len(Dh)})', flush=True)
+                Lh = [
+                    abs(parameters[p] - parameters[p.replace("max", "min")])
+                    for p in p_params["ZmaxH"]
+                ]
+                if args.debug:
+                    for i, p in enumerate(p_params["hwH"]):
+                        print(f"hwH[{i}]: key={p}, value={parameters[p]}", flush=True)
 
-            dTwi = [0.0] * len(Dh)
-            Ti = [0.0] * len(Dh)
-            hi = [0.0] * len(Dh)
-            VolMass = [0.0] * len(Dh)
-            SpecHeat = [0.0] * len(Dh)
-            Q = [0.0] * len(Dh)
+                    # TODO verify if data are consistant??
+                    # assert len(Dh) == len(TwH) == len(dTwH) == len(hwH)
 
-            FluxZ = None
-            if "Z" in args.cooling:
-                print(f"{target}: get FluxZ", flush=True)
-                FluxZ = dict_df[target]["FluxZ"].copy(deep=True)
+                if not dTwH:
+                    dTwH = [0.0] * len(Dh)
 
-            Tw0 = 0.0
-            if not isinstance(TwH[0], dict):
-                Tw0 = TwH[0]
+                dTwi = [0.0] * len(Dh)
+                Ti = [0.0] * len(Dh)
+                hi = [0.0] * len(Dh)
+                VolMass = [0.0] * len(Dh)
+                SpecHeat = [0.0] * len(Dh)
+                Q = [0.0] * len(Dh)
 
-            for i, (d, s) in enumerate(zip(Dh, Sh)):
-                cname = p_params["Dh"][i].replace("Dh_", "")
-                print(f"*** Channel[{i}]: {cname}", flush=True)
-                PowerCh = dict_df[target]["Flux"][cname].iloc[-1]
+                FluxZ = None
+                if "Z" in args.cooling:
+                    print(f"{target}: get FluxZ", flush=True)
+                    FluxZ = dict_df[target]["FluxZ"].copy(deep=True)
 
-                # when gradHZ:
-                FluxCh_dz = []
-                Tw_z_old = []
-                hw_z_old = []
-                if FluxZ is not None:
-                    print(f"FluxZ {target}: channel[{i}]: get Tw_z_old and hw_z_old for {cname}", flush=True)
-                    csvfile = TwH[i]["filename"].replace("$cfgdir", basedir)
-                    print(f"FluxZ {target}: channel[{i}]: read csv {csvfile} for TwH[{i}]", flush=True)
-                    Tw_data = pd.read_csv(csvfile, sep=",")
-                    print(f"FluxZ {target}: channel[{i}]: Tw_data columns={Tw_data.columns.values.tolist()}", flush=True)
-                    Tw0 = Tw_data["Tw"].iloc[0]
-                    Tw_z_old = Tw_data["Tw"].to_list()
-                    # when not gradHZH
-                    if not "hw" in Tw_data:
-                        # Use hwH[i] if it's a numeric value, otherwise default to 80000
-                        hw_init = hwH[i] if not isinstance(hwH[i], dict) else 80000
-                        print(f"FluxZ hw=cst {target}: channel[{i}]: no hw column in Tw_data, set hw={hw_init} W/m2/K (type(hwH[{i}])={type(hwH[i])})", flush=True)
-                        Tw_data["hw"] = [hw_init] * len(Tw_z_old)
-                    hw_z_old = Tw_data["hw"].to_list() 
-                    zsections = Tw_data["Z"].to_list()
-                    dTwH[i] = Tw_z_old[-1] - Tw_z_old[0]
+                Tw0 = 0.0
+                if not isinstance(TwH[0], dict):
+                    Tw0 = TwH[0]
 
-                    # get PowerCh_Z
-                    key_dz = [
-                        fkey
-                        for fkey in FluxZ.columns.values.tolist()
-                        if fkey.endswith(cname)
-                    ]
-                    assert len(Tw_data) == len(key_dz) + 1, (
-                        f"inconsistant data for Tw and FluxZ for {cname}"
-                    )
+                for i, (d, s) in enumerate(zip(Dh, Sh)):
+                    cname = p_params["Dh"][i].replace("Dh_", "")
+                    print(f"*** Channel[{i}]: {cname}", flush=True)
+                    PowerCh = dict_df[target]["Flux"][cname].iloc[-1]
 
-                    FluxCh_dz = [
-                        FluxZ.at[FluxZ.index[-1], f"FluxZ{i}_{cname}"]
-                        for i in range(len(key_dz))
-                    ]
-                    print(f"FluxZ {target}: channel[{i}]: FluxCh_dz for {cname}=\n{FluxCh_dz}", flush=True)
-
-                    htol = 1e-3
-                    assert abs(1 - sum(FluxCh_dz) / PowerCh) <= htol, (
-                        f"Sum(FluxZ)!=Flux[{cname}]:{abs(1 - sum(FluxCh_dz) / PowerCh)}>{htol}; PowerCh={PowerCh} Flux_H={sum(FluxCh_dz)}"
-                    )
-
-                U = Umean
-                tmp_dTwi = dTwH[i]
-                tmp_hi_old = 0.0
-                if isinstance(hwH[i], dict):
-                    print(f"{target}: channel[{i}]: hwH is dict, get tmp_hi_old from hw_z_old[0]", flush=True)
-                    tmp_hi_old = hw_z_old[0]
-                else:
-                    print(f"{target}: channel[{i}]: hwH is not dict, get tmp_hi_old from hwH[{i}]", flush=True)
-                    tmp_hi_old = hwH[i]
-                print(
-                    f"\ncname={cname}, i={i}, d={d:.5f}, s={s:.6e}, L={Lh[i]:.3f}, U={U:.3f}, PowerCh={PowerCh:.3f}, tmp_dTwi={tmp_dTwi:.3f}, tmp_hi_old={tmp_hi_old:.3f}",
-                    flush=True,
-                )
-
-                Tw_z = Tw_z_old
-                hw_z = hw_z_old
-                tmp_hi = tmp_hi_old
-                tmp_Twh = 0.0
-                if isinstance(TwH[i], dict):
-                    print(f"{target}: channel[{i}]: TwH is dict, get tmp_Twh from Tw_z[0]", flush=True)
-                    tmp_Twh = Tw_z[0]
-                else:
-                    print(f"{target}: channel[{i}]: TwH is not dict, get tmp_Twh from TwH[{i}]", flush=True)
-                    tmp_Twh = TwH[i]
-
-                print(f"{target}: channel[{i}]: initial tmp_Twh={tmp_Twh:.3f}, tmp_dTwi={tmp_dTwi:.3f}, tmp_hi_old={tmp_hi_old:.3f}", flush=True)
-                while True:
-                    tmp_flow = U * s
-                    tmp_dTwi = getDT(
-                        tmp_flow, PowerCh, tmp_Twh + tmp_dTwi / 2.0, Pressure
-                    )
-                    print(f"\tFluxZ {target}: channel[{i}]: tmp_dTwi={tmp_dTwi:.3f}", flush=True)
+                    # when gradHZ:
+                    FluxCh_dz = []
+                    Tw_z_old = []
+                    hw_z_old = []
                     if FluxZ is not None:
-                        print(f"FluxZ {target}: channel[{i}]: compute Tw_z and hw_z for {cname}", flush=True)
-                        for k, flux in enumerate(FluxCh_dz):
-                            Pw = Pressure - dPressure * (
-                                zsections[k] - zsections[0]
-                            ) / (zsections[-1] - zsections[0])
-                            print(f"\t\tFluxZ {target}: channel[{i}]: compute Tw_z[{k}] for {cname} with Pw={Pw:.3f}, flux={flux}, Tw_z_old[{k}]={Tw_z_old[k]:.3f}, Tw_z_old[{k+1}]={Tw_z_old[k+1]:.3f}", flush=True)
-                            dTw_z = getDT(
-                                tmp_flow,
-                                flux,
-                                (Tw_z_old[k] + Tw_z_old[k + 1]) / 2.0,
-                                Pw,
-                            )
-                            Tw_z[k + 1] = Tw_z[k] + dTw_z
-                            print(f"\t\tFluxZ {target}: channel[{i}]: computed Tw_z[{k+1}]={Tw_z[k+1]:.3f} with Tw_z[{k}]={Tw_z[k]:.3f}, dTw_z={dTw_z:.3f}", flush=True)
+                        print(f"FluxZ {target}: channel[{i}]: get Tw_z_old and hw_z_old for {cname}", flush=True)
+                        csvfile = TwH[i]["filename"].replace("$cfgdir", basedir)
+                        print(f"FluxZ {target}: channel[{i}]: read csv {csvfile} for TwH[{i}]", flush=True)
+                        Tw_data = pd.read_csv(csvfile, sep=",")
+                        print(f"FluxZ {target}: channel[{i}]: Tw_data columns={Tw_data.columns.values.tolist()}", flush=True)
+                        Tw0 = Tw_data["Tw"].iloc[0]
+                        Tw_z_old = Tw_data["Tw"].to_list()
+                        # when not gradHZH
+                        if not "hw" in Tw_data:
+                            # Use hwH[i] if it's a numeric value, otherwise default to 80000
+                            hw_init = hwH[i] if not isinstance(hwH[i], dict) else 80000
+                            print(f"FluxZ hw=cst {target}: channel[{i}]: no hw column in Tw_data, set hw={hw_init} W/m2/K (type(hwH[{i}])={type(hwH[i])})", flush=True)
+                            Tw_data["hw"] = [hw_init] * len(Tw_z_old)
+                        hw_z_old = Tw_data["hw"].to_list() 
+                        zsections = Tw_data["Z"].to_list()
+                        dTwH[i] = Tw_z_old[-1] - Tw_z_old[0]
 
-                        for k in range(len(Tw_z)):
-                            Pw = Pressure - dPressure * (
-                                zsections[k] - zsections[0]
-                            ) / (zsections[-1] - zsections[0])
-                            hw_z[k] = getHeatCoeff(
-                                d,
-                                Lh[i],
-                                U,
-                                Tw_z[k],
-                                Pressure,
-                                dPressure,
-                                model=args.heatcorrelation,
+                        # get PowerCh_Z
+                        key_dz = [
+                            fkey
+                            for fkey in FluxZ.columns.values.tolist()
+                            if fkey.endswith(cname)
+                        ]
+                        assert len(Tw_data) == len(key_dz) + 1, (
+                            f"inconsistant data for Tw and FluxZ for {cname}"
+                        )
+
+                        FluxCh_dz = [
+                            FluxZ.at[FluxZ.index[-1], f"FluxZ{i}_{cname}"]
+                            for i in range(len(key_dz))
+                        ]
+                        print(f"FluxZ {target}: channel[{i}]: FluxCh_dz for {cname}=\n{FluxCh_dz}", flush=True)
+
+                        htol = 1e-3
+                        assert abs(1 - sum(FluxCh_dz) / PowerCh) <= htol, (
+                            f"Sum(FluxZ)!=Flux[{cname}]:{abs(1 - sum(FluxCh_dz) / PowerCh)}>{htol}; PowerCh={PowerCh} Flux_H={sum(FluxCh_dz)}"
+                        )
+
+                    U = Umean
+                    tmp_dTwi = dTwH[i]
+                    tmp_hi_old = 0.0
+                    if isinstance(hwH[i], dict):
+                        print(f"{target}: channel[{i}]: hwH is dict, get tmp_hi_old from hw_z_old[0]", flush=True)
+                        tmp_hi_old = hw_z_old[0]
+                    else:
+                        print(f"{target}: channel[{i}]: hwH is not dict, get tmp_hi_old from hwH[{i}]", flush=True)
+                        tmp_hi_old = hwH[i]
+                    print(
+                        f"\ncname={cname}, i={i}, d={d:.5f}, s={s:.6e}, L={Lh[i]:.3f}, U={U:.3f}, PowerCh={PowerCh:.3f}, tmp_dTwi={tmp_dTwi:.3f}, tmp_hi_old={tmp_hi_old:.3f}",
+                        flush=True,
+                    )
+
+                    Tw_z = Tw_z_old
+                    hw_z = hw_z_old
+                    tmp_hi = tmp_hi_old
+                    tmp_Twh = 0.0
+                    if isinstance(TwH[i], dict):
+                        print(f"{target}: channel[{i}]: TwH is dict, get tmp_Twh from Tw_z[0]", flush=True)
+                        tmp_Twh = Tw_z[0]
+                    else:
+                        print(f"{target}: channel[{i}]: TwH is not dict, get tmp_Twh from TwH[{i}]", flush=True)
+                        tmp_Twh = TwH[i]
+
+                    print(f"{target}: channel[{i}]: initial tmp_Twh={tmp_Twh:.3f}, tmp_dTwi={tmp_dTwi:.3f}, tmp_hi_old={tmp_hi_old:.3f}", flush=True)
+                    cf = 0.0
+                    while True:
+                        tmp_flow = U * s
+                        tmp_dTwi = getDT(
+                            tmp_flow, PowerCh, tmp_Twh + tmp_dTwi / 2.0, Pressure
+                        )
+                        print(f"\tFluxZ {target}: channel[{i}]: tmp_dTwi={tmp_dTwi:.3f}", flush=True)
+                        if FluxZ is not None:
+                            print(f"FluxZ {target}: channel[{i}]: compute Tw_z and hw_z for {cname}", flush=True)
+                            for k, flux in enumerate(FluxCh_dz):
+                                Pw = Pressure - dPressure * (
+                                    zsections[k] - zsections[0]
+                                ) / (zsections[-1] - zsections[0])
+                                print(f"\t\tFluxZ {target}: channel[{i}]: compute Tw_z[{k}] for {cname} with Pw={Pw:.3f}, flux={flux}, Tw_z_old[{k}]={Tw_z_old[k]:.3f}, Tw_z_old[{k+1}]={Tw_z_old[k+1]:.3f}", flush=True)
+                                dTw_z = getDT(
+                                    tmp_flow,
+                                    flux,
+                                    (Tw_z_old[k] + Tw_z_old[k + 1]) / 2.0,
+                                    Pw,
+                                )
+                                Tw_z[k + 1] = Tw_z[k] + dTw_z
+                                print(f"\t\tFluxZ {target}: channel[{i}]: computed Tw_z[{k+1}]={Tw_z[k+1]:.3f} with Tw_z[{k}]={Tw_z[k]:.3f}, dTw_z={dTw_z:.3f}", flush=True)
+
+                            for k in range(len(Tw_z)):
+                                Pw = Pressure - dPressure * (
+                                    zsections[k] - zsections[0]
+                                ) / (zsections[-1] - zsections[0])
+                                hw_z[k] = getHeatCoeff(
+                                    d,
+                                    Lh[i],
+                                    U,
+                                    Tw_z[k],
+                                    Pressure,
+                                    dPressure,
+                                    model=args.heatcorrelation,
                                 friction=args.friction,
                                 fuzzy=fuzzy,
                                 pextra=pextra
@@ -705,104 +707,107 @@ def compute_error(
                 del Tw_z
                 del hw_z
 
-            dict_df[target]["flow"] = sum(Q)
-            # TODO compute an estimate of dTg
-            # Tout /= VolMass * SpecHeat * (Umean * sum(Sh))
-            Tout = getTout(Ti, VolMass, SpecHeat, Q)
+                dict_df[target]["flow"] = sum(Q)
+                # TODO compute an estimate of d human Tg
+                # Tout /= VolMass * SpecHeat * (Umean * sum(Sh))
+                Tout = getTout(Ti, VolMass, SpecHeat, Q)
 
-            Steam = steam(Tout, Pressure)
-            List_Tout.append(Tout)
-            List_VolMassout.append(Steam.rho)
-            List_SpecHeatout.append(Steam.cp * 1.0e3)
-            List_Qout.append(Umean * sum(Sh))
+                Steam = steam(Tout, Pressure)
+                List_Tout.append(Tout)
+                List_VolMassout.append(Steam.rho)
+                List_SpecHeatout.append(Steam.cp * 1.0e3)
+                List_Qout.append(Umean * sum(Sh))
 
-            dTg = Tout - Tw0
-            print(
-                f"{target}: Tout={Tout:.3f}  Tw={Tw0:.3f}, U={Umean:.3f}, Power={PowerM:.3f}, dTg={dTg:.3f} ({PowerM/(VolMass[0]*SpecHeat[0]*flow.flow(abs(objectif))):.3f}), Flow={flow.flow(abs(objectif)):.3f}, Sum(Qh)={sum(Q):.3f}",
-                flush=True,
-            )
-            dict_df[target]["Tout"] = Tout
-
-            del Steam
-            del hwH
-            del dTwH
-            del Lh
-            del Tw0
-            del VolMass
-            del SpecHeat
-            del dTwi
-            del Ti
-            del hi
-            del Q
-
-        # global:  what to do when len(Tw) != 1
-        else:
-            Tw = [parameters[p] for p in p_params["Tw"]]
-            dTw = [parameters[p] for p in p_params["dTw"]]
-            hw = [parameters[p] for p in p_params["hw"]]
-            L = [
-                abs(parameters[p] - parameters[p.replace("max", "min")])
-                for p in p_params["Zmax"]
-            ]
-
-            for i, T in enumerate(Tw):
-                if args.debug:
-                    print(f"T:{T} Tw:{Tw}  i:{i}  dTw:{dTw[i]}  hw:{hw[i]}", flush=True)
-                dTg = getDT(flow.flow(abs(objectif)), PowerM, Tw[i], Pressure)
-                hg = getHeatCoeff(
-                    Dh[i],
-                    L[i],
-                    Umean,
-                    Tw[i] + dTg / 2.0,
-                    Pressure,
-                    dPressure,
-                    model=args.heatcorrelation,
-                    friction=args.friction,
-                    fuzzy=fuzzy,
-                    pextra=pextra
-                )
-                # f.addParameterInModelProperties(p_params["dTw"][i], dTg)
-                # f.addParameterInModelProperties(p_params["hw"][i], hg)
-                parameters[p_params["hw"][i]] = hg
-                parameters[p_params["dTw"][i]] = dTg
-
-                error_dT.append(abs(1 - (dTw[i] / dTg)))
-                error_h.append(abs(1 - (hw[i] / hg)))
-
-                dict_df[target]["HeatCoeff"][p_params["hw"][i]] = [round(hg, 3)]
-                dict_df[target]["DT"][p_params["dTw"][i]] = [round(dTg, 3)]
-                dict_df[target]["Uw"][p_params["dTw"][i].replace("dTw", "Uw")] = [
-                    round(Umean, 3)
-                ]
-
-            if args.debug:
+                dTg = Tout - Tw0
                 print(
-                    f'{target}: Tw={Tw[0]}, param={p_params["dTw"][0]}, umean={Umean}, Power={PowerM}, dTg={dTg}, hg={hg}',
+                    f"{target}: Tout={Tout:.3f}  Tw={Tw0:.3f}, U={Umean:.3f}, Power={PowerM:.3f}, dTg={dTg:.3f} ({PowerM/(VolMass[0]*SpecHeat[0]*flow.flow(abs(objectif))):.3f}), Flow={flow.flow(abs(objectif)):.3f}, Sum(Qh)={sum(Q):.3f}",
                     flush=True,
                 )
-            dict_df[target]["Tout"] = Tw[0] + dTg
+                dict_df[target]["Tout"] = Tout
 
-            Steam = steam(Tw[0] + dTg, Pressure)
-            List_Tout.append(Tw[0] + dTg)
-            List_VolMassout.append(Steam.rho)
-            List_SpecHeatout.append(Steam.cp * 1.0e3)
-            List_Qout.append(flow.flow(abs(objectif)))
-            del Steam
-            del Tw
-            del dTw
-            del hw
-            del L
+                del Steam
+                del hwH
+                del dTwH
+                del Lh
+                del Tw0
+                del VolMass
+                del SpecHeat
+                del dTwi
+                del Ti
+                del hi
+                del Q
 
-        # TODO: how to transform dTg, hg et DTwi, hi en dataframe??
-        err_max_dT = max(err_max_dT, max(error_dT))
-        err_max_h = max(err_max_h, max(error_h))
+            # global:  what to do when len(Tw) != 1
+            else:
+                Tw = [parameters[p] for p in p_params["Tw"]]
+                dTw = [parameters[p] for p in p_params["dTw"]]
+                hw = [parameters[p] for p in p_params["hw"]]
+                L = [
+                    abs(parameters[p] - parameters[p.replace("max", "min")])
+                    for p in p_params["Zmax"]
+                ]
 
-        del Dh
-        del Sh
-        del error_dT
-        del error_h
+                for i, T in enumerate(Tw):
+                    if args.debug:
+                        print(f"T:{T} Tw:{Tw}  i:{i}  dTw:{dTw[i]}  hw:{hw[i]}", flush=True)
+                    dTg = getDT(flow.flow(abs(objectif)), PowerM, Tw[i], Pressure)
+                    hg = getHeatCoeff(
+                        Dh[i],
+                        L[i],
+                        Umean,
+                        Tw[i] + dTg / 2.0,
+                        Pressure,
+                        dPressure,
+                        model=args.heatcorrelation,
+                        friction=args.friction,
+                        fuzzy=fuzzy,
+                        pextra=pextra
+                    )
+                    # f.addParameterInModelProperties(p_params["dTw"][i], dTg)
+                    # f.addParameterInModelProperties(p_params["hw"][i], hg)
+                    parameters[p_params["hw"][i]] = hg
+                    parameters[p_params["dTw"][i]] = dTg
 
-    if len(List_Tout) > 1:
+                    error_dT.append(abs(1 - (dTw[i] / dTg)))
+                    error_h.append(abs(1 - (hw[i] / hg)))
+
+                    dict_df[target]["HeatCoeff"][p_params["hw"][i]] = [round(hg, 3)]
+                    dict_df[target]["DT"][p_params["dTw"][i]] = [round(dTg, 3)]
+                    dict_df[target]["Uw"][p_params["dTw"][i].replace("dTw", "Uw")] = [
+                        round(Umean, 3)
+                    ]
+
+                if args.debug:
+                    print(
+                        f'{target}: Tw={Tw[0]}, param={p_params["dTw"][0]}, umean={Umean}, Power={PowerM}, dTg={dTg}, hg={hg}',
+                        flush=True,
+                    )
+                dict_df[target]["Tout"] = Tw[0] + dTg
+
+                Steam = steam(Tw[0] + dTg, Pressure)
+                List_Tout.append(Tw[0] + dTg)
+                List_VolMassout.append(Steam.rho)
+                List_SpecHeatout.append(Steam.cp * 1.0e3)
+                List_Qout.append(flow.flow(abs(objectif)))
+                del Steam
+                del Tw
+                del dTw
+                del hw
+                del L
+
+            # TODO: how to transform dTg, hg et DTwi, hi en dataframe??
+            err_max_dT = max(err_max_dT, max(error_dT))
+            err_max_h = max(err_max_h, max(error_h))
+            print(
+                f"{target} cooling={args.cooling}: it={it} err_max_dT={err_max_dT:.3e}, err_max_h={err_max_h:.3e}",
+                flush=True,
+            )
+            del Dh
+            del Sh
+            del error_dT
+            del error_h
+
+    if args.update_cooling and len(List_Tout) > 1:
         Tout_site = getTout(List_Tout, List_VolMassout, List_SpecHeatout, List_Qout)
         print(f"MSITE Tout={Tout_site}", flush=True)
         dict_df[target]["MSite_Tout"] = Tout_site
