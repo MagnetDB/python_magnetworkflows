@@ -346,7 +346,7 @@ def solve(
 
         table_.append(err_max)
         table.append(table_)
-        heatTol = 1e-2
+        heatTol = args.heatTol
 
         if e.isMasterRank():
             print(
