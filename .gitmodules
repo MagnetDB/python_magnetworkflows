@@ -4,3 +4,6 @@
 [submodule "python_magnetunits"]
 	path = python_magnetunits
 	url = git@github.com:MagnetDB/python_magnetunits.git
+[submodule "python_magnetapi"]
+	path = python_magnetapi
+	url = git@github.com:MagnetDB/python_magnetapi.git
