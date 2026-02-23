@@ -9,6 +9,9 @@ from tabulate import tabulate
 
 import gc
 
+# Convergence tolerance for iterative flow calculation
+FLOW_CONVERGENCE_TOL = 1.0e-3
+
 
 # sort (ref https://stackoverflow.com/questions/29580978/naturally-sorting-pandas-dataframe)
 def natsortdataframe(pd):
@@ -101,13 +104,12 @@ def init_dict_df(targets: dict, args):
 
 
 def read_measures_csv(measures_csv: dict, filename: str, debug: bool) -> dict:
-    if filename not in measures_csv:
-        with open(filename, "r") as file:
-            if debug:
-                print(f"read csv: {filename}", flush=True)
-            measures_csv[filename] = pd.read_csv(file, sep=",")
-            if debug:
-                print(f"*** measures_csv[{filename}]: {measures_csv[filename].columns.values.tolist()}", flush=True)
+    with open(filename, "r") as file:
+        if debug:
+            print(f"read csv: {filename}", flush=True)
+        measures_csv[filename] = pd.read_csv(file, sep=",")
+        if debug:
+            print(f"*** measures_csv[{filename}]: {measures_csv[filename].columns.values.tolist()}", flush=True)
     return measures_csv
 
 
@@ -162,10 +164,12 @@ def compute_error(
 
         filename = targets[target]["csv"]
         measures_csv = read_measures_csv(measures_csv, filename, args.debug)
+        print(f"{target}: read measures_csv {filename} with {len(measures_csv[filename].columns)} columns", flush=True)
 
         filtered_df = getTarget(
             targets, target, measures_csv[filename], args.debug
         ).copy(deep=True)
+        print(f"{target}: filtered_df has {len(filtered_df.columns)} columns", flush=True)
         relax = float(values["relax"])
         fuzzy = float(values["fuzzy"])
         pextra = float(values.get("pextra", 1))
@@ -176,11 +180,13 @@ def compute_error(
         err_max_target = max(error.abs().max(axis=1))
         err_max = max(err_max_target, err_max)
 
-        print(f"{target}: objectif={objectif}", flush=True)
-        print(f"{target}: relax={relax}", flush=True)
-        print(f"{target}: fuzzy={fuzzy}", flush=True)
         if args.debug:
             print(f"filtered_df: {filtered_df.columns.values.tolist()}", flush=True)
+            print(f"{target}: objectif={objectif}", flush=True)
+            print(f"{target}: err_max_target={err_max_target:.3e}", flush=True)
+            print(f"{target}: err_max={err_max:.3e}", flush=True)
+            print(f"{target}: relax={relax}", flush=True)
+            print(f"{target}: fuzzy={fuzzy}", flush=True)
             # print(f"{target}: filtered_df={filtered_df}", flush=True)
             # print(f"{target}: error={error}", flush=True)
         print(
@@ -202,7 +208,7 @@ def compute_error(
             if args.debug:
                 print(f"param={param}, marker={marker}", flush=True)
                 print(
-                    f"{it}: {marker}, goal={objectif:.3f}, val={val:.3f}, err={error[marker].iloc[-1]:.3e}, ovalue={ovalue:.3f}, nvalue={nvalue:.3f}",
+                    f"{it}: {marker}, goal={objectif:.3f}, val={val:.3f}, err={error[marker].iloc[-1]:.3e}, ovalue={ovalue}, nvalue={nvalue}",
                     flush=True,
                 )
             # f.addParameterInModelProperties(param, nvalue)
@@ -224,7 +230,7 @@ def compute_error(
 
             if "csv" in param:
                 filename = param["csv"]
-                measures_csv = read_measures_csv(measures_csv, filename, args.debug)
+                # measures_csv = read_measures_csv(measures_csv, filename, args.debug)
 
                 dict_df[target][name] = getTarget(
                     {f"{name}": param}, name, measures_csv[filename], args.debug
@@ -272,7 +278,7 @@ def compute_error(
 
                 if "csv" in param:
                     filename = param["csv"]
-                    measures_csv = read_measures_csv(measures_csv, filename, args.debug)
+                    # measures_csv = read_measures_csv(measures_csv, filename, args.debug)
                     dict_df[target][key][name] = getTarget(
                         {f"{name}": param}, name, measures_csv[filename], args.debug
                     ).copy(deep=True)
@@ -318,8 +324,8 @@ def compute_error(
         if args.debug:
             print(f"PowerM: {dict_df[target]['PowerM']}", flush=True)
             print(f"PowerH: {dict_df[target]['PowerH']}", flush=True)
-            for flux_key in [k for k in dict_df[target].keys() if k.startswith("Flux")]:
-                print(f"{flux_key}: {dict_df[target][flux_key]}", flush=True)
+            # for flux_key in [k for k in dict_df[target].keys() if k.startswith("Flux")]:
+            #     print(f"{flux_key}: {dict_df[target][flux_key]}", flush=True)
             print(f"Flux: {dict_df[target]['Flux']}", flush=True)
 
         PowerM = dict_df[target]["PowerM"].iloc[-1, 0]
@@ -481,14 +487,15 @@ def compute_error(
                 SpecHeat = [0.0] * len(Dh)
                 Q = [0.0] * len(Dh)
 
-                FluxZ = None
-                if "Z" in args.cooling:
-                    print(f"{target}: get FluxZ", flush=True)
-                    FluxZ = dict_df[target]["FluxZ"].copy(deep=True)
 
                 Tw0 = 0.0
                 if not isinstance(TwH[0], dict):
                     Tw0 = TwH[0]
+
+                FluxZ = None
+                if "Z" in args.cooling:
+                    print(f"{target}: get FluxZ", flush=True)
+                    FluxZ = dict_df[target]["FluxZ"].copy(deep=True)
 
                 for i, (d, s) in enumerate(zip(Dh, Sh)):
                     cname = p_params["Dh"][i].replace("Dh_", "")
@@ -570,7 +577,7 @@ def compute_error(
                         tmp_dTwi = getDT(
                             tmp_flow, PowerCh, tmp_Twh + tmp_dTwi / 2.0, Pressure
                         )
-                        print(f"\tFluxZ {target}: channel[{i}]: tmp_dTwi={tmp_dTwi:.3f}", flush=True)
+                        print(f"\t{target}: channel[{i}]: tmp_dTwi={tmp_dTwi:.3f}", flush=True)
                         if FluxZ is not None:
                             print(f"FluxZ {target}: channel[{i}]: compute Tw_z and hw_z for {cname}", flush=True)
                             for k, flux in enumerate(FluxCh_dz):
@@ -609,45 +616,45 @@ def compute_error(
                                     flush=True,
                                 )
 
-                    print(f"\tFluxZ {target}: channel[{i}]: compute tmp_hi for {cname}", flush=True)
-                    print(f"\tFluxZ {target}: d={d:.5f}, L={Lh[i]:.3f}, U={U:.3f}, Tw={tmp_Twh + tmp_dTwi / 2.0:.3f}, Pressure={Pressure}, dPressure={dPressure}, model={args.heatcorrelation}, friction={args.friction}, fuzzy={fuzzy}, pextra={pextra}", flush=True)
-                    tmp_hi = getHeatCoeff(
-                        d,
-                        Lh[i],
-                        U,
-                        tmp_Twh + tmp_dTwi / 2.0,
-                        Pressure,
-                        dPressure,
-                        model=args.heatcorrelation,
-                        friction=args.friction,
-                        fuzzy=fuzzy,
-                        pextra=pextra
-                    )
-                    print(f"\tFluxZ {target}: channel[{i}]: cname={cname}, i={i}, tmp_hi={tmp_hi:.3f}, tmp_Twh={tmp_Twh:.3f}, tmp_dTwi={tmp_dTwi:.3f}, Pressure={Pressure}, dPressure={dPressure}", flush=True)
-                    Steam = steam(tmp_Twh + tmp_dTwi / 2.0, Pressure)
-                    tmp_U, cf = Uw(
-                        Steam,
-                        dPressure,
-                        d,
-                        Lh[i],
-                        friction=args.friction,
-                        uguess=U,
-                    )
-                    del Steam
-                    n_tmp_flow = tmp_U * s
-                    if args.debug:
-                        print(
-                            f"\tFluxZ {target}: channel[{i}]: tmp_flow={tmp_flow:.6e}, n_tmp_flow={n_tmp_flow:.6e}, U={U:.3f}, tmp_U={tmp_U:.3f}, TwH[{i}]={tmp_Twh:.3f}, tmp_dTwi={tmp_dTwi:.3f}",
-                            flush=True,
+                        print(f"\t{target}: channel[{i}]: compute tmp_hi for {cname}", flush=True)
+                        print(f"\t{target}: d={d:.5f}, L={Lh[i]:.3f}, U={U:.3f}, Tw={tmp_Twh + tmp_dTwi / 2.0:.3f}, Pressure={Pressure}, dPressure={dPressure}, model={args.heatcorrelation}, friction={args.friction}, fuzzy={fuzzy}, pextra={pextra}", flush=True)
+                        tmp_hi = getHeatCoeff(
+                            d,
+                            Lh[i],
+                            U,
+                            tmp_Twh + tmp_dTwi / 2.0,
+                            Pressure,
+                            dPressure,
+                            model=args.heatcorrelation,
+                            friction=args.friction,
+                            fuzzy=fuzzy,
+                            pextra=pextra
                         )
-                    U = tmp_U
-                    if FluxZ is not None:
-                        dTwH[i] = Tw_z_old[-1] - Tw_z_old[0]
-                        Tw_z_old = Tw_z
-                        hw_z_old = hw_z
+                        print(f"\t{target}: channel[{i}]: cname={cname}, i={i}, tmp_hi={tmp_hi:.3f}, tmp_Twh={tmp_Twh:.3f}, tmp_dTwi={tmp_dTwi:.3f}, Pressure={Pressure}, dPressure={dPressure}", flush=True)
+                        Steam = steam(tmp_Twh + tmp_dTwi / 2.0, Pressure)
+                        tmp_U, cf = Uw(
+                            Steam,
+                            dPressure,
+                            d,
+                            Lh[i],
+                            friction=args.friction,
+                            uguess=U,
+                        )
+                        del Steam
+                        n_tmp_flow = tmp_U * s
+                        if args.debug:
+                            print(
+                                f"\t{target}: channel[{i}]: tmp_flow={tmp_flow:.6e}, n_tmp_flow={n_tmp_flow:.6e}, U={U:.3f}, tmp_U={tmp_U:.3f}, TwH[{i}]={tmp_Twh:.3f}, tmp_dTwi={tmp_dTwi:.3f}",
+                                flush=True,
+                            )
+                        U = tmp_U
+                        if FluxZ is not None:
+                            dTwH[i] = Tw_z_old[-1] - Tw_z_old[0]
+                            Tw_z_old = Tw_z
+                            hw_z_old = hw_z
 
-                    if abs(1 - n_tmp_flow / tmp_flow) <= 1.0e-3:
-                        break
+                        if abs(1 - n_tmp_flow / tmp_flow) <= FLOW_CONVERGENCE_TOL:
+                            break
 
                 if FluxZ is not None:
                     Tw_data["Tw"] = Tw_z

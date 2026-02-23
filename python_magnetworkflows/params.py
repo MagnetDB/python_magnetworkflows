@@ -17,7 +17,7 @@ import pandas as pd
 def getTarget(
     targetdefs: dict, name: str, csv: pd.DataFrame, debug: bool = False
 ) -> pd.DataFrame:
-    print(f"*** getTarget: cwd={ os.getcwd() } name={name}", flush=True)
+    print(f"*** getTarget: cwd={ os.getcwd() } name={name} csv={len(csv.columns)} columns", flush=True)
 
     defs = targetdefs[name]
 

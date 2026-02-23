@@ -59,12 +59,6 @@ def options(description: str, epilog: str):
         default="Constant",
     )
     parser.add_argument(
-        "--pextra",
-        help="specify head lossses (default: 1)",
-        type=float,
-        default=1,
-    )
-    parser.add_argument(
         "--eps",
         help="specify requested tolerance (default: 1.e-3)",
         type=float,
@@ -94,7 +88,9 @@ def options(description: str, epilog: str):
         action="store_false",
         dest="update_cooling",
     )
-    parser.add_argument("--reloadcfg", help="get feelpp config", action="store_true")
+    parser.add_argument("--reloadcfg", help="get feelpp config", action="store_true", default=True)
+    parser.add_argument("--no-reloadcfg", help="do not get feelpp config", action="store_false", dest="reloadcfg")
+    
     parser.add_argument("--debug", help="activate debug", action="store_true")
     parser.add_argument("--verbose", help="activate verbose", action="store_true")
     parser.add_argument(
@@ -993,9 +989,11 @@ def main():
 
     parser = options(description, epilog)
     args = parser.parse_args()
+    args.cfgfile = os.path.abspath(args.cfgfile)
+    args.wd = os.path.abspath(args.wd)
 
     pwd = os.getcwd()
-    if args.wd != ".":
+    if args.wd != pwd:
         print(f"change working directory to {args.wd}", flush=True)
         os.chdir(args.wd)
 
@@ -1022,18 +1020,21 @@ def main():
             basedir = args.wd
 
         jsonmodel = feelpp_config["cfpdes"]["filename"]
-        if not jsonmodel.startswith("$cfgdir/"):
-            if not os.path.isabs(jsonmodel):
-                jsonmodel = os.path.abspath(os.path.join(args.wd, jsonmodel))
-        else:
+        if jsonmodel.startswith("$cfgdir/"):
             jsonmodel = jsonmodel.replace(r"$cfgdir/", f"{basedir}/")
+        # Ensure jsonmodel is always absolute
+        if not os.path.isabs(jsonmodel):
+            jsonmodel = os.path.abspath(os.path.join(args.wd, jsonmodel))
 
         meshmodel = feelpp_config["cfpdes"]["mesh.filename"]
-        if not meshmodel.startswith("$cfgdir/"):
-            if not os.path.isabs(meshmodel):
-                meshmodel = os.path.abspath(os.path.join(args.wd, meshmodel))
-        else:
+        if meshmodel.startswith("$cfgdir/"):
             meshmodel = meshmodel.replace(r"$cfgdir/", f"{basedir}/")
+        # Ensure meshmodel is always absolute
+        if not os.path.isabs(meshmodel):
+            meshmodel = os.path.abspath(os.path.join(args.wd, meshmodel))
+
+    print(f"jsonmodel={jsonmodel}", flush=True)
+    print(f"meshmodel={meshmodel}", flush=True)
 
     # Get Parameters from JSON model file
     parameters = {}
@@ -1108,7 +1109,7 @@ def main():
     if args.debug:
         print(f"end of cli, rank={e.worldCommPtr().localRank()}", flush=True)
 
-    if args.wd != ".":  # change back to original working directory
+    if args.wd != pwd:  # change back to original working directory
         print(f"change back working directory to {pwd}", flush=True)
         os.chdir(pwd)
 
