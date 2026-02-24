@@ -187,76 +187,76 @@ def validate_magnet_config(magnet_type: MagnetType, values: dict) -> None:
             )
 
 
-def build_patterns(magnet_type: MagnetType, filter: str) -> dict:
+def build_patterns(magnet_type: MagnetType, mfilter: str) -> dict:
     """
     Build regex patterns for a specific magnet type.
-    
+
     Args:
         magnet_type: Either MagnetType.INSERT or MagnetType.BITTERS
-        filter: Filter prefix for the magnet
-        
+        mfilter: Filter prefix for the magnet
+
     Returns:
         Dictionary of pattern names to regex strings
     """
     if magnet_type == MagnetType.INSERT:
         return {
-            "power_m": rf"Statistics_PowerM_{filter}\w*integrate",
-            "power_h": rf"Statistics_Power_{filter}H\d+_integrate",
-            "flux": rf"Statistics_Flux_{filter}Channel\d+_integrate",
-            "flux_z": rf"Statistics_FluxZ\d+_{filter}Channel\d+_integrate",
-            "intensity": rf"Statistics_Intensity_{filter}H\w+_integrate",
-            "stat_t_min": rf"Statistics_Stat_T_{filter}\w*min",
-            "stat_t_mean": rf"Statistics_Stat_T_{filter}\w*mean",
-            "stat_t_max": rf"Statistics_Stat_T_{filter}\w*max",
-            "t_min": rf"Statistics_T_{filter}\w+\d+_min",
-            "t_mean": rf"Statistics_T_{filter}\w+\d+_mean",
-            "t_max": rf"Statistics_T_{filter}\w+\d+_max",
-            "stat_displ_min": rf"Statistics_Stat_Displ_{filter}\w*min",
-            "stat_displ_max": rf"Statistics_Stat_Displ_{filter}\w*max",
-            "stat_stress_min": rf"Statistics_Stat_Stress_{filter}\w*min",
-            "stat_stress_mean": rf"Statistics_Stat_Stress_{filter}\w*mean",
-            "stat_stress_max": rf"Statistics_Stat_Stress_{filter}\w*max",
-            "stat_vonmises_min": rf"Statistics_Stat_VonMises_{filter}\w*min",
-            "stat_vonmises_mean": rf"Statistics_Stat_VonMises_{filter}\w*mean",
-            "stat_vonmises_max": rf"Statistics_Stat_VonMises_{filter}\w*max",
-            "displ_min": rf"Statistics_Displ_{filter}\w+\d+_min",
-            "displ_max": rf"Statistics_Displ_{filter}\w+\d+_max",
-            "stress_min": rf"Statistics_Stress_{filter}\w+\d+_min",
-            "stress_mean": rf"Statistics_Stress_{filter}\w+\d+_mean",
-            "stress_max": rf"Statistics_Stress_{filter}\w+\d+_max",
-            "vonmises_min": rf"Statistics_VonMises_{filter}\w+\d+_min",
-            "vonmises_mean": rf"Statistics_VonMises_{filter}\w+\d+_mean",
-            "vonmises_max": rf"Statistics_VonMises_{filter}\w+\d+_max",
+            "power_m": rf"Statistics_PowerM_{mfilter}\w*integrate",
+            "power_h": rf"Statistics_Power_{mfilter}H\d+_integrate",
+            "flux": rf"Statistics_Flux_{mfilter}Channel\d+_integrate",
+            "flux_z": rf"Statistics_FluxZ\d+_{mfilter}Channel\d+_integrate",
+            "intensity": rf"Statistics_Intensity_{mfilter}H\w+_integrate",
+            "stat_t_min": rf"Statistics_Stat_T_{mfilter}\w*min",
+            "stat_t_mean": rf"Statistics_Stat_T_{mfilter}\w*mean",
+            "stat_t_max": rf"Statistics_Stat_T_{mfilter}\w*max",
+            "t_min": rf"Statistics_T_{mfilter}\w+\d+_min",
+            "t_mean": rf"Statistics_T_{mfilter}\w+\d+_mean",
+            "t_max": rf"Statistics_T_{mfilter}\w+\d+_max",
+            "stat_displ_min": rf"Statistics_Stat_Displ_{mfilter}\w*min",
+            "stat_displ_max": rf"Statistics_Stat_Displ_{mfilter}\w*max",
+            "stat_stress_min": rf"Statistics_Stat_Stress_{mfilter}\w*min",
+            "stat_stress_mean": rf"Statistics_Stat_Stress_{mfilter}\w*mean",
+            "stat_stress_max": rf"Statistics_Stat_Stress_{mfilter}\w*max",
+            "stat_vonmises_min": rf"Statistics_Stat_VonMises_{mfilter}\w*min",
+            "stat_vonmises_mean": rf"Statistics_Stat_VonMises_{mfilter}\w*mean",
+            "stat_vonmises_max": rf"Statistics_Stat_VonMises_{mfilter}\w*max",
+            "displ_min": rf"Statistics_Displ_{mfilter}\w+\d+_min",
+            "displ_max": rf"Statistics_Displ_{mfilter}\w+\d+_max",
+            "stress_min": rf"Statistics_Stress_{mfilter}\w+\d+_min",
+            "stress_mean": rf"Statistics_Stress_{mfilter}\w+\d+_mean",
+            "stress_max": rf"Statistics_Stress_{mfilter}\w+\d+_max",
+            "vonmises_min": rf"Statistics_VonMises_{mfilter}\w+\d+_min",
+            "vonmises_mean": rf"Statistics_VonMises_{mfilter}\w+\d+_mean",
+            "vonmises_max": rf"Statistics_VonMises_{mfilter}\w+\d+_max",
         }
     elif magnet_type == MagnetType.BITTERS:
         return {
-            "power_m": rf"Statistics_PowerM_{filter}\w*integrate",
-            "power_h": rf"Statistics_Power_{filter}\w+_B\d+_integrate",
-            "flux": rf"Statistics_Flux_{filter}\w+_Slit\d+_integrate",
-            "flux_z": rf"Statistics_FluxZ\d+_{filter}\w+_Slit\d+_integrate",
-            "intensity": rf"Statistics_Intensity_{filter}\w+_integrate",
-            "stat_t_min": rf"Statistics_Stat_T_{filter}\w*min",
-            "stat_t_mean": rf"Statistics_Stat_T_{filter}\w*mean",
-            "stat_t_max": rf"Statistics_Stat_T_{filter}\w*max",
-            "t_min": rf"Statistics_T_{filter}\w+_B\d+_min",
-            "t_mean": rf"Statistics_T_{filter}\w+_B\d+_mean",
-            "t_max": rf"Statistics_T_{filter}\w+_B\d+_max",
-            "stat_displ_min": rf"Statistics_Stat_Displ_{filter}\w*min",
-            "stat_displ_max": rf"Statistics_Stat_Displ_{filter}\w*max",
-            "stat_stress_min": rf"Statistics_Stat_Stress_{filter}\w*min",
-            "stat_stress_mean": rf"Statistics_Stat_Stress_{filter}\w*mean",
-            "stat_stress_max": rf"Statistics_Stat_Stress_{filter}\w*max",
-            "stat_vonmises_min": rf"Statistics_Stat_VonMises_{filter}\w*min",
-            "stat_vonmises_mean": rf"Statistics_Stat_VonMises_{filter}\w*mean",
-            "stat_vonmises_max": rf"Statistics_Stat_VonMises_{filter}\w*max",
-            "displ_min": rf"Statistics_Displ_{filter}\w+_B\d+_min",
-            "displ_max": rf"Statistics_Displ_{filter}\w+_B\d+_max",
-            "stress_min": rf"Statistics_Stress_{filter}\w+_B\d+_min",
-            "stress_mean": rf"Statistics_Stress_{filter}\w+_B\d+_mean",
-            "stress_max": rf"Statistics_Stress_{filter}\w+_B\d+_max",
-            "vonmises_min": rf"Statistics_VonMises_{filter}\w+_B\d+_min",
-            "vonmises_mean": rf"Statistics_VonMises_{filter}\w+_B\d+_mean",
-            "vonmises_max": rf"Statistics_VonMises_{filter}\w+_B\d+_max",
+            "power_m": rf"Statistics_PowerM_{mfilter}\w*integrate",
+            "power_h": rf"Statistics_Power_{mfilter}\w+_B\d+_integrate",
+            "flux": rf"Statistics_Flux_{mfilter}\w+_Slit\d+_integrate",
+            "flux_z": rf"Statistics_FluxZ\d+_{mfilter}\w+_Slit\d+_integrate",
+            "intensity": rf"Statistics_Intensity_{mfilter}\w+_integrate",
+            "stat_t_min": rf"Statistics_Stat_T_{mfilter}\w*min",
+            "stat_t_mean": rf"Statistics_Stat_T_{mfilter}\w*mean",
+            "stat_t_max": rf"Statistics_Stat_T_{mfilter}\w*max",
+            "t_min": rf"Statistics_T_{mfilter}\w+_B\d+_min",
+            "t_mean": rf"Statistics_T_{mfilter}\w+_B\d+_mean",
+            "t_max": rf"Statistics_T_{mfilter}\w+_B\d+_max",
+            "stat_displ_min": rf"Statistics_Stat_Displ_{mfilter}\w*min",
+            "stat_displ_max": rf"Statistics_Stat_Displ_{mfilter}\w*max",
+            "stat_stress_min": rf"Statistics_Stat_Stress_{mfilter}\w*min",
+            "stat_stress_mean": rf"Statistics_Stat_Stress_{mfilter}\w*mean",
+            "stat_stress_max": rf"Statistics_Stat_Stress_{mfilter}\w*max",
+            "stat_vonmises_min": rf"Statistics_Stat_VonMises_{mfilter}\w*min",
+            "stat_vonmises_mean": rf"Statistics_Stat_VonMises_{mfilter}\w*mean",
+            "stat_vonmises_max": rf"Statistics_Stat_VonMises_{mfilter}\w*max",
+            "displ_min": rf"Statistics_Displ_{mfilter}\w+_B\d+_min",
+            "displ_max": rf"Statistics_Displ_{mfilter}\w+_B\d+_max",
+            "stress_min": rf"Statistics_Stress_{mfilter}\w+_B\d+_min",
+            "stress_mean": rf"Statistics_Stress_{mfilter}\w+_B\d+_mean",
+            "stress_max": rf"Statistics_Stress_{mfilter}\w+_B\d+_max",
+            "vonmises_min": rf"Statistics_VonMises_{mfilter}\w+_B\d+_min",
+            "vonmises_mean": rf"Statistics_VonMises_{mfilter}\w+_B\d+_mean",
+            "vonmises_max": rf"Statistics_VonMises_{mfilter}\w+_B\d+_max",
         }
     else:
         raise ValueError(f"Unknown magnet type: {magnet_type}")
@@ -299,13 +299,13 @@ def create_measure_dict(
     }
 
 
-def build_power_measures(magnet_type: MagnetType, filter: str, patterns: dict) -> dict:
+def build_power_measures(magnet_type: MagnetType, mfilter: str, patterns: dict) -> dict:
     """
     Build power-related measures (PowerM, PowerH, Flux, FluxZ).
-    
+
     Args:
         magnet_type: Either MagnetType.INSERT or MagnetType.BITTERS
-        filter: Filter prefix for the magnet
+        mfilter: Filter prefix for the magnet
         patterns: Dictionary of regex patterns from build_patterns()
         
     Returns:
@@ -331,14 +331,14 @@ def build_power_measures(magnet_type: MagnetType, filter: str, patterns: dict) -
     return measures
 
 
-def build_heat_params(magnet_type: MagnetType, filter: str) -> dict:
+def build_heat_params(magnet_type: MagnetType, mfilter: str) -> dict:
     """
     Build heat coefficient and temperature parameters.
-    
+
     Args:
         magnet_type: Either MagnetType.INSERT or MagnetType.BITTERS
-        filter: Filter prefix for the magnet
-        
+        mfilter: Filter prefix for the magnet
+
     Returns:
         Dictionary containing HeatCoeff and DT parameter definitions
     """
@@ -346,12 +346,12 @@ def build_heat_params(magnet_type: MagnetType, filter: str) -> dict:
         heat_coeff = {
             "name": "HeatCoeff",
             "params": [
-                ("Dh", f"Dh_{filter}\\w+"),
-                ("Sh", f"Sh_{filter}\\w+"),
-                ("hw", f"hw_{filter}Channel"),
-                ("hwH", f"hw_{filter}Channel\\d+"),
-                ("Zmax", f"Zmax_{filter}Channel"),
-                ("ZmaxH", f"Zmax_{filter}Channel\\d+"),
+                ("Dh", f"Dh_{mfilter}\\w+"),
+                ("Sh", f"Sh_{mfilter}\\w+"),
+                ("hw", f"hw_{mfilter}Channel"),
+                ("hwH", f"hw_{mfilter}Channel\\d+"),
+                ("Zmax", f"Zmax_{mfilter}Channel"),
+                ("ZmaxH", f"Zmax_{mfilter}Channel\\d+"),
             ],
             "value": (getHeatCoeff),
             "unit": "W/m2/K",
@@ -359,10 +359,10 @@ def build_heat_params(magnet_type: MagnetType, filter: str) -> dict:
         dt = {
             "name": "DT",
             "params": [
-                ("Tw", f"Tw_{filter}Channel"),
-                ("dTw", f"dTw_{filter}Channel"),
-                ("TwH", f"Tw_{filter}Channel\\d+"),
-                ("dTwH", f"dTw_{filter}Channel\\d+"),
+                ("Tw", f"Tw_{mfilter}Channel"),
+                ("dTw", f"dTw_{mfilter}Channel"),
+                ("TwH", f"Tw_{mfilter}Channel\\d+"),
+                ("dTwH", f"dTw_{mfilter}Channel\\d+"),
             ],
             "value": (getDT),
             "unit": "K",
@@ -371,12 +371,12 @@ def build_heat_params(magnet_type: MagnetType, filter: str) -> dict:
         heat_coeff = {
             "name": "HeatCoeff",
             "params": [
-                ("Dh", f"Dh_{filter}\\w+"),
-                ("Sh", f"Sh_{filter}\\w+"),
-                ("hw", f"hw_{filter}\\w+", "\\w+_Slit\\w+", False),
-                ("hwH", f"hw_{filter}\\w+", "\\w+_Slit\\w+", True),
-                ("Zmax", f"Zmax_{filter}\\w+", "\\w+_Slit\\w+", False),
-                ("ZmaxH", f"Zmax_{filter}\\w+", "\\w+_Slit\\w+", True),
+                ("Dh", f"Dh_{mfilter}\\w+"),
+                ("Sh", f"Sh_{mfilter}\\w+"),
+                ("hw", f"hw_{mfilter}\\w+", "\\w+_Slit\\w+", False),
+                ("hwH", f"hw_{mfilter}\\w+", "\\w+_Slit\\w+", True),
+                ("Zmax", f"Zmax_{mfilter}\\w+", "\\w+_Slit\\w+", False),
+                ("ZmaxH", f"Zmax_{mfilter}\\w+", "\\w+_Slit\\w+", True),
             ],
             "value": (getHeatCoeff),
             "unit": "W/m2/K",
@@ -384,10 +384,10 @@ def build_heat_params(magnet_type: MagnetType, filter: str) -> dict:
         dt = {
             "name": "DT",
             "params": [
-                ("Tw", f"Tw_{filter}\\w+", "\\w+_Slit\\w+", False),
-                ("dTw", f"dTw_{filter}\\w+", "\\w+_Slit\\w+", False),
-                ("TwH", f"Tw_{filter}\\w+", "\\w+_Slit\\w+", True),
-                ("dTwH", f"dTw_{filter}\\w+", "\\w+_Slit\\w+", True),
+                ("Tw", f"Tw_{mfilter}\\w+", "\\w+_Slit\\w+", False),
+                ("dTw", f"dTw_{mfilter}\\w+", "\\w+_Slit\\w+", False),
+                ("TwH", f"Tw_{mfilter}\\w+", "\\w+_Slit\\w+", True),
+                ("dTwH", f"dTw_{mfilter}\\w+", "\\w+_Slit\\w+", True),
             ],
             "value": (getDT),
             "unit": "K",
@@ -398,13 +398,13 @@ def build_heat_params(magnet_type: MagnetType, filter: str) -> dict:
     return {"HeatCoeff": heat_coeff, "DT": dt}
 
 
-def build_temperature_measures(magnet_type: MagnetType, filter: str, patterns: dict) -> dict:
+def build_temperature_measures(magnet_type: MagnetType, mfilter: str, patterns: dict) -> dict:
     """
     Build all temperature-related measures (MinT, MeanT, MaxT, MinTH, MeanTH, MaxTH).
-    
+
     Args:
         magnet_type: Either MagnetType.INSERT or MagnetType.BITTERS
-        filter: Filter prefix for the magnet
+        mfilter: Filter prefix for the magnet
         patterns: Dictionary of regex patterns from build_patterns()
         
     Returns:
@@ -442,13 +442,13 @@ def build_temperature_measures(magnet_type: MagnetType, filter: str, patterns: d
     return measures
 
 
-def build_mechanical_measures(magnet_type: MagnetType, filter: str, patterns: dict) -> dict:
+def build_mechanical_measures(magnet_type: MagnetType, mfilter: str, patterns: dict) -> dict:
     """
     Build all mechanical-related measures (displacement, stress, von Mises).
-    
+
     Args:
         magnet_type: Either MagnetType.INSERT or MagnetType.BITTERS
-        filter: Filter prefix for the magnet
+        mfilter: Filter prefix for the magnet
         patterns: Dictionary of regex patterns from build_patterns()
         
     Returns:
@@ -527,7 +527,7 @@ def build_mechanical_measures(magnet_type: MagnetType, filter: str, patterns: di
 
 
 def configure_magnet_target(
-    filter: str,
+    mfilter: str,
     magnet_type: MagnetType,
     values: dict,
     pwd: str,
@@ -539,9 +539,9 @@ def configure_magnet_target(
 ) -> dict:
     """
     Configure a single magnet target entry.
-    
+
     Args:
-        filter: Filter prefix for the magnet
+        mfilter: Filter prefix for the magnet
         magnet_type: Either MagnetType.INSERT or MagnetType.BITTERS
         values: Magnet configuration values from args.mdata
         pwd: Working directory path
@@ -550,23 +550,23 @@ def configure_magnet_target(
         power_measures: Dictionary containing PowerM, PowerH, Flux
         heat_params: Dictionary containing HeatCoeff, DT
         e: Feel++ environment
-        
+
     Returns:
         Target configuration dictionary
     """
     # Determine target parameters based on magnet type
     if magnet_type == MagnetType.INSERT:
-        target_rematch = f"Statistics_Intensity_{filter}H\\w+_integrate"
+        target_rematch = f"Statistics_Intensity_{mfilter}H\\w+_integrate"
     elif magnet_type == MagnetType.BITTERS:
-        target_rematch = f"Statistics_Intensity_{filter}\\w+_integrate"
+        target_rematch = f"Statistics_Intensity_{mfilter}\\w+_integrate"
     elif magnet_type == MagnetType.SUPRAS:
         raise NotImplementedError("SUPRAS magnet type is not yet implemented")
     else:
         raise ValueError(f"Unknown magnet type: {magnet_type}")
-    
-    target_params = [("N", f"N_{filter}\\w+")]
-    target_control_params = [(f"{filter}U", f"U_{filter}\\w+")]
-    
+
+    target_params = [("N", f"N_{mfilter}\\w+")]
+    target_control_params = [(f"{mfilter}U", f"U_{mfilter}\\w+")]
+
     # Build base target configuration
     target_config = {
         "objectif": values["value"],
@@ -583,7 +583,7 @@ def configure_magnet_target(
             power_measures["PowerH"]
         ],
         "unit": "A",
-        "name": f"Intensity_{filter}",
+        "name": f"Intensity_{mfilter}",
         "post": {"type": "Statistics_Intensity", "math": "integrate"},
         "waterflow": waterflow.flow_params(
             values["flow"]
@@ -706,37 +706,37 @@ def loadMdata(e, pwd: str, args, targets: dict, postvalues: dict):
         if e.isMasterRank():
             print(f"mname={mname}, values={values}")
         
-        filter = values.get("filter", "")
+        mfilter = values.get("filter", "")
         magnet_type = MagnetType.from_string(values["type"])
-        
+
         # Validate configuration
         validate_magnet_config(magnet_type, values)
-        
+
         # Build regex patterns for this magnet type
-        patterns = build_patterns(magnet_type, filter)
-        
+        patterns = build_patterns(magnet_type, mfilter)
+
         # Build power measures (PowerM, PowerH, Flux)
-        power_measures = build_power_measures(magnet_type, filter, patterns)
-        
+        power_measures = build_power_measures(magnet_type, mfilter, patterns)
+
         # Build heat parameters (HeatCoeff, DT)
-        heat_params = build_heat_params(magnet_type, filter)
-        
+        heat_params = build_heat_params(magnet_type, mfilter)
+
         # Build temperature measures
-        temp_measures = build_temperature_measures(magnet_type, filter, patterns)
-        
+        temp_measures = build_temperature_measures(magnet_type, mfilter, patterns)
+
         # Build mechanical measures if using thermo-mechanical coupling
         mech_measures = None
         if "thmagel" in args.cfgfile:
-            mech_measures = build_mechanical_measures(magnet_type, filter, patterns)
-        
+            mech_measures = build_mechanical_measures(magnet_type, mfilter, patterns)
+
         # Configure target for this magnet
-        targets[f"{filter}I"] = configure_magnet_target(
-            filter, magnet_type, values, pwd, args,
+        targets[f"{mfilter}I"] = configure_magnet_target(
+            mfilter, magnet_type, values, pwd, args,
             patterns, power_measures, heat_params, e
         )
-        
+
         # Configure post-processing values for this magnet
-        postvalues[f"{filter}I"] = configure_magnet_postvalues(
+        postvalues[f"{mfilter}I"] = configure_magnet_postvalues(
             temp_measures, mech_measures
         )
 

@@ -1,6 +1,6 @@
 import pandas as pd
 
-from .params import getTarget, getparam
+from .params import getTarget, getparam, resolve_cfgdir_path
 from .waterflow import waterflow as w
 from .cooling import steam, Uw, getDT, getHeatCoeff, getTout
 
@@ -294,7 +294,7 @@ def compute_error(
             if isinstance(values_, list):
                 if values_:
                     msg += f", list={type(values_[0])}  sorted"
-                    dict_df[target][key] = natsortlist(values_).copy(deep=True)
+                    dict_df[target][key] = natsortlist(values_).copy()
                 else:
                     msg += f", list=empty"
             if isinstance(values_, pd.core.frame.DataFrame):
@@ -410,6 +410,11 @@ def compute_error(
         Ptol = 1e-2
         print(f"{target}: it={it} Power={PowerM:.3f} SPower_H={SPower_H:.3f} SFlux_H={SFlux_H:.3f}  Powers_Diff={Powers_Diff:.3f} PowerFlux_Diff={PowerFlux_Diff:.3f}",)
 
+        if PowerM == 0:
+            raise ValueError(
+                f"{target}: PowerM is zero at it={it}; cannot evaluate power balance. "
+                "Check solver output and boundary conditions."
+            )
         assert Powers_Diff / PowerM <= Ptol, (
             f"Power!=SPower_H:{100*Powers_Diff/PowerM:.3f}%  Power={PowerM:.3f} SPower_H={SPower_H:.3f}"
         )
@@ -508,7 +513,7 @@ def compute_error(
                     hw_z_old = []
                     if FluxZ is not None:
                         print(f"FluxZ {target}: channel[{i}]: get Tw_z_old and hw_z_old for {cname}", flush=True)
-                        csvfile = TwH[i]["filename"].replace("$cfgdir", basedir)
+                        csvfile = resolve_cfgdir_path(TwH[i]["filename"], basedir)
                         print(f"FluxZ {target}: channel[{i}]: read csv {csvfile} for TwH[{i}]", flush=True)
                         Tw_data = pd.read_csv(csvfile, sep=",")
                         print(f"FluxZ {target}: channel[{i}]: Tw_data columns={Tw_data.columns.values.tolist()}", flush=True)
@@ -541,6 +546,11 @@ def compute_error(
                         print(f"FluxZ {target}: channel[{i}]: FluxCh_dz for {cname}=\n{FluxCh_dz}", flush=True)
 
                         htol = 1e-3
+                        if PowerCh == 0:
+                            raise ValueError(
+                                f"{target} channel[{i}] ({cname}): PowerCh is zero; "
+                                "cannot verify FluxZ consistency. Check solver output."
+                            )
                         assert abs(1 - sum(FluxCh_dz) / PowerCh) <= htol, (
                             f"Sum(FluxZ)!=Flux[{cname}]:{abs(1 - sum(FluxCh_dz) / PowerCh)}>{htol}; PowerCh={PowerCh} Flux_H={sum(FluxCh_dz)}"
                         )
@@ -698,7 +708,7 @@ def compute_error(
                 )
 
                 if FluxZ is not None:
-                    csvfile = TwH[i]["filename"].replace("$cfgdir", basedir)
+                    csvfile = resolve_cfgdir_path(TwH[i]["filename"], basedir)
                     print(f"{target}: channel[{i}]: write csv {csvfile} for TwH[{i}], Tw_data columns={Tw_data.columns.values.tolist()}", flush=True)
                     # Drop hw column if it exists before saving
                     if args.cooling == "gradHZ":

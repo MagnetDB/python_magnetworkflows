@@ -49,6 +49,9 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
     "pytest>=8.2.0",
+    "ruff>=0.4.0",
+    "mypy>=1.10.0",
+    "pre-commit>=3.7.0",
 ]
 
 [project.urls]
@@ -64,6 +67,34 @@ packages = ["python_magnetworkflows"]
 
 [tool.setuptools.package-data]
 python_magnetworkflows = ["**"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "UP",  # pyupgrade
+]
+ignore = [
+    "E501",  # line too long – enforced by formatter, not linter
+    "B006",  # mutable default argument (widespread in argparse defaults)
+    "B007",  # loop variable not used (has legitimate uses here)
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["python_magnetworkflows"]
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+ignore_missing_imports = true   # feel++ stubs are not available
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

@@ -16,7 +16,7 @@ import feelpp.toolboxes.cfpdes as cfpdes
 import pandas as pd
 import gc
 
-from .params import getparam
+from .params import getparam, resolve_cfgdir_path
 
 
 def create_field(
@@ -281,7 +281,7 @@ def solve(
                     ]
                 )
                 for file in csvfiles:
-                    _file = file.replace("$cfgdir", basedir)
+                    _file = resolve_cfgdir_path(file, basedir)
                     if e.isMasterRank():
                         shutil.copy2(f"{_file}", f"{_file}-iter={it}-{post[:-1]}.csv")
 
@@ -297,10 +297,10 @@ def solve(
         try:
             f.solve()
             f.exportResults()
-        except Exception as e:
+        except Exception as exc:
             raise RuntimeError(
                 "cfpdes solver or exportResults fails - check feelpp logs for more info"
-            ) from e
+            ) from exc
 
         # TODO: get csv to look for depends on cfpdes model used
         from .error import compute_error
@@ -445,17 +445,17 @@ def solve(
             os.remove(save_h5)
         os.remove(save_json)
         for i in range(it):
-            print(f"remove {basedir}/U-it{i}-{post[:-1]}.h5", flush=True)
-            os.remove(f"{basedir}/U-it{i}-{post[:-1]}.h5")
-            tmp_jsonmodel = jsonmodel.replace(".json", f"-it{i}-{post[:-1]}.json")
+            print(f"remove {basedir}/U-iter={i}-{post[:-1]}.h5", flush=True)
+            os.remove(f"{basedir}/U-iter={i}-{post[:-1]}.h5")
+            tmp_jsonmodel = jsonmodel.replace(".json", f"-iter={i}-{post[:-1]}.json")
             print(f"remove {tmp_jsonmodel}", flush=True)
             os.remove(tmp_jsonmodel)
         if "Z" in args.cooling:
             for i in range(it):
                 for file in csvfiles:
-                    _file = file.replace("$cfgdir", basedir)
-                    print(f"remove {_file}-it{i}-{post[:-1]}.csv", flush=True)
-                    os.remove(f"{_file}-it{i}-{post[:-1]}.csv")
+                    _file = resolve_cfgdir_path(file, basedir)
+                    print(f"remove {_file}-iter={i}-{post[:-1]}.csv", flush=True)
+                    os.remove(f"{_file}-iter={i}-{post[:-1]}.csv")
 
     if args.debug:
         print(f"end of solve, rank={comm.localRank()}", flush=True)

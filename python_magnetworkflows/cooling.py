@@ -114,8 +114,8 @@ def Dittus(
     Dh: float,
     L: float,
     friction: str,
-    fuzzy: str = 1.0,
-    pextra: float = 1
+    fuzzy: float = 1.0,
+    pextra: float = 1,
 ) -> float:
     params = (0.023, 0.8, 0.4)
     h = hcorrelation(params, Tw, Pw, dPw, U, Dh, L, friction, pextra, "Dittus")
@@ -130,7 +130,7 @@ def Colburn(
     Dh: float,
     L: float,
     friction: str,
-    fuzzy: str = 1.0,
+    fuzzy: float = 1.0,
     pextra: float = 1,
 ) -> float:
     params = (0.023, 0.8, 0.3)
@@ -146,7 +146,7 @@ def Silverberg(
     Dh: float,
     L: float,
     friction: str,
-    fuzzy: str = 1.0,
+    fuzzy: float = 1.0,
     pextra: float = 1,
 ) -> float:
     params = (0.015, 0.85, 0.3)
@@ -315,10 +315,10 @@ def Reynolds(Steam, U: float, Dh: float, L: float) -> float:
     return Re
 
 
-def Prandlt(
+def Prandtl(
     Steam,
 ) -> float:
-    """Compute Prandlt as Pr = mu*cp/k"""
+    """Compute Prandtl as Pr = mu*cp/k"""
     Pr = Steam.mu * Steam.cp * 1.0e3 / Steam.k
     # print(f"Pr={Pr}")
     return Pr
@@ -366,7 +366,7 @@ def hcorrelation(
     )
 
     Re = Reynolds(Steam, nU, Dh, L)
-    Pr = Prandlt(Steam)
+    Pr = Prandtl(Steam)
 
     h = alpha * exp(log(Re) * n) * exp(log(Pr) * m) / Dh
     # print(f"hcorrelation({model}): friction={friction}, h={h}, Pr={Pr}, Re={Re}")
