@@ -95,14 +95,12 @@ def Montgomery(
     """
 
     # fuzzy = 1.7
-    # Montgomery formula uses Dh in centimetres (see docstring)
-    Dh_cm = Dh * 100
     h = (
         fuzzy
         * 1426.404
         * (1 + 1.5e-2 * (Tw - 273))
         * exp(log(U) * 0.8)
-        / exp(log(Dh_cm) * 0.2)
+        / exp(log(Dh) * 0.2)
     )
     # print(f"hcorrelation(Montgomery): h={h}")
     return h
