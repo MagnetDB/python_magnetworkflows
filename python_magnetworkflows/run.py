@@ -1,5 +1,6 @@
 import sys
 import os
+import subprocess
 import argparse
 import configparser
 
@@ -110,7 +111,7 @@ def main():
                         f"{commandline} > {basedir}/{cooling}/{args.type}_{cooling}_{heatcorrelation}_{friction}.log 2>&1;\n\n"
                     )
 
-    os.system(f"sh {basedir}/run_{args.type}.sh")
+    subprocess.run(["sh", f"{basedir}/run_{args.type}.sh"], check=True)
     os.remove(f"{basedir}/run_{args.type}.sh")
 
     return 0
