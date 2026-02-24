@@ -51,21 +51,7 @@ See `pyproject.toml` for complete list. Major dependencies:
 - feelpp and feelpp-toolboxes
 
 ## Installation
-### Prerequisites
 
-This package requires Feel++ to be installed separately.
-For Debian/Ubuntu:
-
-```bash
-# Add Feel++ repository
-wget -q http://apt.feelpp.org/apt.gpg -O apt.gpg
-sudo install -D -o root -g root -m 644 apt.gpg /etc/apt/keyrings/packages.feelpp.gpg
-echo "deb http://apt.feelpp.org/ubuntu/noble noble latest" | sudo tee /etc/apt/sources.list.d/feelpp.list
-
-# Install Feel++ Python packages
-sudo apt-get update
-sudo apt-get install python3-feelpp python3-feelpp-toolboxes python3-feelpp-toolboxes-coefficientformpdes
-```
 
 ### Python virtual env
 
