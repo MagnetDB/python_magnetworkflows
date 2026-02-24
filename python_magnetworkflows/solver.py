@@ -448,17 +448,17 @@ def solve(
             os.remove(save_h5)
         os.remove(save_json)
         for i in range(it):
-            print(f"remove {basedir}/U-it{i}-{post[:-1]}.h5", flush=True)
-            os.remove(f"{basedir}/U-it{i}-{post[:-1]}.h5")
-            tmp_jsonmodel = jsonmodel.replace(".json", f"-it{i}-{post[:-1]}.json")
+            print(f"remove {basedir}/U-iter={i}-{post[:-1]}.h5", flush=True)
+            os.remove(f"{basedir}/U-iter={i}-{post[:-1]}.h5")
+            tmp_jsonmodel = jsonmodel.replace(".json", f"-iter={i}-{post[:-1]}.json")
             print(f"remove {tmp_jsonmodel}", flush=True)
             os.remove(tmp_jsonmodel)
         if "Z" in args.cooling:
             for i in range(it):
                 for file in csvfiles:
                     _file = resolve_cfgdir_path(file, basedir)
-                    print(f"remove {_file}-it{i}-{post[:-1]}.csv", flush=True)
-                    os.remove(f"{_file}-it{i}-{post[:-1]}.csv")
+                    print(f"remove {_file}-iter={i}-{post[:-1]}.csv", flush=True)
+                    os.remove(f"{_file}-iter={i}-{post[:-1]}.csv")
 
     if args.debug:
         print(f"end of solve, rank={comm.localRank()}", flush=True)

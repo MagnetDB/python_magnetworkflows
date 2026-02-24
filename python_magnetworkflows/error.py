@@ -288,7 +288,7 @@ def compute_error(
             if isinstance(values_, list):
                 if values_:
                     msg += f", list={type(values_[0])}  sorted"
-                    dict_df[target][key] = natsortlist(values_).copy(deep=True)
+                    dict_df[target][key] = natsortlist(values_).copy()
                 else:
                     msg += f", list=empty"
             if isinstance(values_, pd.core.frame.DataFrame):
