@@ -41,7 +41,7 @@ def options(description: str, epilog: str):
         "--cooling",
         help="choose cooling type",
         type=str,
-        choices=["mean", "grad", "meanH", "gradH", "gradHZ"],
+        choices=["mean", "grad", "meanH", "gradH", "gradHZ", "gradHZH"],
         default="mean",
     )
     parser.add_argument(

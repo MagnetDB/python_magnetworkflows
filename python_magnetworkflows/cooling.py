@@ -95,12 +95,14 @@ def Montgomery(
     """
 
     # fuzzy = 1.7
+    # Montgomery formula uses Dh in centimetres (see docstring)
+    Dh_cm = Dh * 100
     h = (
         fuzzy
         * 1426.404
         * (1 + 1.5e-2 * (Tw - 273))
         * exp(log(U) * 0.8)
-        / exp(log(Dh) * 0.2)
+        / exp(log(Dh_cm) * 0.2)
     )
     # print(f"hcorrelation(Montgomery): h={h}")
     return h
@@ -420,5 +422,7 @@ def getTout(
         Tout += Ti * RHOi * CPi * Qi
         rhoCpQ += RHOi * CPi * Qi
 
+    if rhoCpQ == 0:
+        raise ValueError("getTout: total flow rate is zero, cannot compute outlet temperature")
     Tout /= rhoCpQ
     return Tout

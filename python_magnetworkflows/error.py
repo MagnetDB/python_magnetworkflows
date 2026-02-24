@@ -137,10 +137,6 @@ def compute_error(
     print(f"*** compute_error: it={it}, targets={targets}, cooling={args.cooling}", flush=True)
     dict_df = init_dict_df(targets, args)
 
-    #y a un pb d'algo dans le cas: gradHZ  
-    # avec les noms des sorties du post pour la partie "Flux" 
-    # ("FluxZ" uniquement alors qu'on cherche une entree "Flux" -- error.py)
-
     table_ = [it]
     err_max = 0.0
     err_max_dT = 0.0
