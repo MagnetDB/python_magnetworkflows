@@ -13,6 +13,22 @@ value: name of the method to compute name
 import os
 import pandas as pd
 
+CFGDIR_PLACEHOLDER = "$cfgdir"
+
+
+def resolve_cfgdir_path(path: str, basedir: str) -> str:
+    """Replace the ``$cfgdir`` placeholder in *path* with *basedir*.
+
+    Args:
+        path: A file path that may contain the ``$cfgdir`` placeholder.
+        basedir: Absolute directory of the configuration file, used as the
+                 replacement for ``$cfgdir``.
+
+    Returns:
+        The resolved absolute path string.
+    """
+    return path.replace(CFGDIR_PLACEHOLDER, basedir)
+
 
 def getTarget(
     targetdefs: dict, name: str, csv: pd.DataFrame, debug: bool = False

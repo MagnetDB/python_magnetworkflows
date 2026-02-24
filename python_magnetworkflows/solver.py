@@ -16,7 +16,7 @@ import feelpp.toolboxes.cfpdes as cfpdes
 import pandas as pd
 import gc
 
-from .params import getparam
+from .params import getparam, resolve_cfgdir_path
 
 
 def create_field(
@@ -285,7 +285,7 @@ def solve(
                     ]
                 )
                 for file in csvfiles:
-                    _file = file.replace("$cfgdir", basedir)
+                    _file = resolve_cfgdir_path(file, basedir)
                     if e.isMasterRank():
                         shutil.copy2(f"{_file}", f"{_file}-iter={it}-{post[:-1]}.csv")
 
@@ -301,10 +301,10 @@ def solve(
         try:
             f.solve()
             f.exportResults()
-        except Exception as e:
+        except Exception as exc:
             raise RuntimeError(
                 "cfpdes solver or exportResults fails - check feelpp logs for more info"
-            ) from e
+            ) from exc
 
         # TODO: get csv to look for depends on cfpdes model used
         from .error import compute_error
@@ -456,7 +456,7 @@ def solve(
         if "Z" in args.cooling:
             for i in range(it):
                 for file in csvfiles:
-                    _file = file.replace("$cfgdir", basedir)
+                    _file = resolve_cfgdir_path(file, basedir)
                     print(f"remove {_file}-it{i}-{post[:-1]}.csv", flush=True)
                     os.remove(f"{_file}-it{i}-{post[:-1]}.csv")
 
