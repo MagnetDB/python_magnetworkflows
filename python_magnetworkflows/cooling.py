@@ -114,8 +114,8 @@ def Dittus(
     Dh: float,
     L: float,
     friction: str,
-    fuzzy: str = 1.0,
-    pextra: float = 1
+    fuzzy: float = 1.0,
+    pextra: float = 1,
 ) -> float:
     params = (0.023, 0.8, 0.4)
     h = hcorrelation(params, Tw, Pw, dPw, U, Dh, L, friction, pextra, "Dittus")
@@ -130,7 +130,7 @@ def Colburn(
     Dh: float,
     L: float,
     friction: str,
-    fuzzy: str = 1.0,
+    fuzzy: float = 1.0,
     pextra: float = 1,
 ) -> float:
     params = (0.023, 0.8, 0.3)
@@ -146,7 +146,7 @@ def Silverberg(
     Dh: float,
     L: float,
     friction: str,
-    fuzzy: str = 1.0,
+    fuzzy: float = 1.0,
     pextra: float = 1,
 ) -> float:
     params = (0.015, 0.85, 0.3)
