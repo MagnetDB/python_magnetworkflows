@@ -60,6 +60,7 @@ Repository = "https://github.com/MagnetDB/python_magnetworkflows"
 
 [project.scripts]
 python_magnetworkflows = "python_magnetworkflows.cli:main"
+python_magnetworkflows_run = "python_magnetworkflows.run:main"
 
 [tool.setuptools]
 packages = ["python_magnetworkflows"]

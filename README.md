@@ -107,6 +107,7 @@ python -m python_magnetworkflows.cli \
 > * type: the type of xxx for magnet (helix: Insert|bitter: Bitters|supra: Supras) -- see [python_magnetgeo](https://github.com/MagnetDB/python_magnetgeo) for details
 > * filter: optional,
 > * flow: a json file that contains parameters for water cooling -- see [python_magnetcooling](https://github.com/MagnetDB/python_magnetcooling) for details
+> * pextra: optional, extra pressure loss parameter (default: 1)
 > 
 > support for type=supra not implemented
 
@@ -122,6 +123,7 @@ python -m python_magnetworkflows.commissioning \
 python_magnetworkflows/
 ├── cli.py              # Main CLI entry point
 ├── commissioning.py    # Multi-step commissioning workflows
+├── run.py              # Parametric study automation (multiple parameter combinations)
 ├── solver.py           # Feel++ solver interface
 ├── oneconfig.py        # Single configuration solver
 ├── cooling.py          # Heat transfer correlations
@@ -172,19 +174,40 @@ mpirun -np 2 python -m python_magnetworkflows.workflows.cli HL-test-cfpdes-thele
 
 ### Running multiple configs at once
 
+The `run.py` module automates parametric studies by running multiple combinations of parameters:
+
+**Purpose:** Systematically test different cooling methods, heat transfer correlations, and friction models.
+
+**Features:**
+- Automatically generates and executes all parameter combinations
+- Supports both single-step (`cli`) and multi-step (`commissioning`) workflows
+- Uses MPI parallelization for each simulation
+- Updates mesh partitioning and output directories automatically
+- Logs output for each combination separately
+
+**Note:** Heat correlations and friction models are only varied for cooling methods containing 'H' (meanH, gradH, gradHZ). Simple cooling methods (mean, grad) use Montgomery/Constant by default.
+
+**Example - single current value:**
 ```bash
 python -m python_magnetworkflows.run cli \
-   --cfgfile M9Bitters/mean/M9Bitters-cfpdes-thmag_hcurl-nonlinear-Axi-sim.cfg
-   --mdata '{"M9Bitters":{"value":31000,"type":"bitter","filter":"","relax":0,"flow":"M9Bitters/M9Bitters-flow_params.json"}}'
-   --coolings "mean" "meanH" "grad" "gradH" "gradHZ" --hcorrelations "Montgomery" --frictions "Constant"
+   --cfgfile M9Bitters/mean/M9Bitters-cfpdes-thmag_hcurl-nonlinear-Axi-sim.cfg \
+   --mdata '{"M9Bitters":{"value":31000,"type":"bitter","filter":"","relax":0,"flow":"M9Bitters/M9Bitters-flow_params.json"}}' \
+   --coolings "mean" "meanH" "grad" "gradH" "gradHZ" \
+   --hcorrelations "Montgomery" "Dittus" \
+   --frictions "Constant" "Blasius" \
+   --np 4 \
+   --itermax 100
 ```
 
-
+**Example - commissioning workflow (multiple current steps):**
 ```bash
 python -m python_magnetworkflows.run commissioning \
    --cfgfile M9Bitters/mean/M9Bitters-cfpdes-thmag_hcurl-nonlinear-Axi-sim.cfg \
    --mdata '{"M9Bitters":{"value":31000,"step":31000,"stepmax":1,"type":"bitter","filter":"","relax":0,"flow":"M9Bitters/M9Bitters-flow_params.json"}}' \
-   --coolings "mean" "meanH" "grad" "gradH" "gradHZ" --hcorrelations "Montgomery" --frictions "Constant"
+   --coolings "mean" "meanH" "grad" "gradH" "gradHZ" \
+   --hcorrelations "Montgomery" \
+   --frictions "Constant" \
+   --np 4
 ```
 
 You need a tree structure like :
@@ -221,7 +244,7 @@ python -m python_magnetworkflows.create_U tmp/M9Bitters_HLtest/M9Bitters_HLtest-
 Run the workflow:
 
 ```bash
-python -m python_magnetworkflows.cli run \
+python -m python_magnetworkflows.cli \
   '{HLtest":{"value":12000,"type":"helix","filter":"HLtest_","flow":"tmp/M9Bitters_HLtest/HLtest-flow_params.json"}, \
             "M9Bitters":{"value":31000,"type":"bitter","filter":"M9Bitters_","flow":"tmp/M9Bitters_HLtest/M9Bitters-flow_params.json"}}' \
   tmp/M9Bitters_HLtest/M9Bitters_HLtest-cfpdes-thelec-Axi-sim.cfg --cooling mean 

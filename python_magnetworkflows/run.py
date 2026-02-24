@@ -1,3 +1,11 @@
+"""Parametric study automation for magnet cooling simulations.
+
+This script automates running multiple combinations of cooling methods,
+heat transfer correlations, and friction models for magnetworkflow simulations.
+It generates a shell script with all parameter combinations and executes them
+using MPI parallelization.
+"""
+
 import sys
 import os
 import subprocess
@@ -6,6 +14,30 @@ import configparser
 
 
 def main():
+    """Main entry point for parametric simulation runner.
+    
+    This function:
+    1. Parses command-line arguments for simulation parameters
+    2. Reads the Feel++ configuration file to extract directory and mesh settings
+    3. Generates a shell script that runs all combinations of:
+       - Cooling methods (mean, meanH, grad, gradH, gradHZ, gradHZH)
+       - Heat transfer correlations (Montgomery, Dittus, Colburn, Silverberg)
+       - Friction models (Constant, Blasius, Filonenko, Colebrook, Swamee)
+    4. Updates configuration files for each run (mesh partitioning, output directories)
+    5. Constructs MPI commands with proper arguments
+    6. Executes the generated shell script
+    7. Cleans up temporary files
+    
+    Returns:
+        int: Exit code (0 for success)
+        
+    Note:
+        - Heat correlations and friction models are only varied for cooling methods
+          containing 'H' (gradH, gradHZ, gradHZH, meanH)
+        - For other cooling methods, only Montgomery heat correlation and Constant
+          friction are used
+        - The script uses perl to modify configuration files in-place
+    """
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "type",
@@ -59,6 +91,7 @@ def main():
     )
     parser.add_argument("--debug", help="activate debug", action="store_true")
     args = parser.parse_args()
+    args.cfgfile = os.path.abspath(args.cfgfile)
 
     feelpp_config = configparser.ConfigParser()
     basedir = None

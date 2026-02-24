@@ -56,7 +56,7 @@ def create_field(
                     marker = param.replace(f"{field}_", "")
                     # check if marker exists in mesh, if not skip the next lines
                     value = parameters[param]
-                    # print(f"{param}={value}")
+                    print(f"{param}={value}")
                     usave.on(
                         range=fppc.markedelements(feel_pb.mesh(), marker),
                         expr=fppc.expr(str(value)),
@@ -71,7 +71,7 @@ def init_field(e, jsonmodel: str, meshmodel: str, dimension: int):
     """
     create and save a field in h5"""
     if e.isMasterRank():
-        print(f"init_field: jsonmodel={jsonmodel}, meshmodel={meshmodel}", flush=True)
+        print(f"init_field: jsonmodel={jsonmodel}, meshmodel={meshmodel}, cwd={os.getcwd()}", flush=True)
 
     # Use absolute path for basedir
     basedir = os.path.dirname(os.path.abspath(jsonmodel))
@@ -151,24 +151,20 @@ def init(
     init feelp env and feelpp problem
     """
 
+    cwd = os.getcwd()
     print(
-        f"init: jsonmodel={jsonmodel}, meshmodel={meshmodel}, cwd={os.getcwd()}, args.wd={args.wd}, pwd={pwd}",
+        f"init: jsonmodel={jsonmodel}, meshmodel={meshmodel}, cwd={cwd}, args.wd={args.wd}, pwd={pwd}",
         flush=True,
     )
 
-    # Handle both relative and absolute paths
-    if not os.path.isabs(jsonmodel):
-        jsonmodel = os.path.join(pwd, jsonmodel)
-    if not os.path.isabs(meshmodel):
-        meshmodel = os.path.join(pwd, meshmodel)
+    # args.cfgfile, jsonmodel, and meshmodel are now always absolute paths
+    cfgfile = args.cfgfile
+
     print(
-        f"init: after handling paths, jsonmodel={jsonmodel}, meshmodel={meshmodel}",
+        f"init: cfgfile={cfgfile}, jsonmodel={jsonmodel}, meshmodel={meshmodel}",
         flush=True,
     )
 
-    if args.wd != ".":
-        if not os.path.isabs(args.cfgfile):
-            cfgfile = os.path.join(args.wd, args.cfgfile)
 
     if not e:
         e = fppc.Environment(
@@ -346,7 +342,6 @@ def solve(
 
         table_.append(err_max)
         table.append(table_)
-        heatTol = args.heatTol
 
         if e.isMasterRank():
             print(
@@ -356,8 +351,8 @@ def solve(
 
         if (
             err_max <= args.eps
-            and err_max_dT <= max(args.eps, heatTol)
-            and err_max_h <= max(args.eps, heatTol)
+            and err_max_dT <= args.heatTol
+            and err_max_h <= args.heatTol
         ):
             break
 
@@ -377,6 +372,7 @@ def solve(
             f.init()
         else:
             # make f.addParameterInModelProperties()
+            print("*** update parameters in model properties", flush=True)
             for target in targets:
                 for param in params[target]:
                     if args.debug:
@@ -410,6 +406,7 @@ def solve(
             # update Parameters
             f.updateParameterValues()
             del selected_params
+            print("*** update parameters in model properties and updateParameterValues done", flush=True)
 
         del err_max_dT
         del err_max_h
