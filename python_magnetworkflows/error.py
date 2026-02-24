@@ -710,9 +710,11 @@ def compute_error(
                 if FluxZ is not None:
                     csvfile = resolve_cfgdir_path(TwH[i]["filename"], basedir)
                     print(f"{target}: channel[{i}]: write csv {csvfile} for TwH[{i}], Tw_data columns={Tw_data.columns.values.tolist()}", flush=True)
-                    # Drop hw column if it exists before saving
+                    # Drop hw column when not gradHZH (gradHZH re-uses hw for next iter)
                     if args.cooling == "gradHZ":
                         Tw_data_save = Tw_data.drop(columns=["hw"], errors="ignore")
+                    else:
+                        Tw_data_save = Tw_data
                     Tw_data_save.to_csv(csvfile, index=False)
                 Steam = steam(tmp_Twh + dTwi[i] / 2.0, Pressure)
                 VolMass[i] = Steam.rho

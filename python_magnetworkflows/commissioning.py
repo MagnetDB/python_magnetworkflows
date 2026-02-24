@@ -106,8 +106,8 @@ def main():
     Currents = []
     step_i = {}
     for mname, values in args.mdata.items():
-        filter = values.get("filter", "")
-        global_df[filter[:-1]] = {
+        mfilter = values.get("filter", "")
+        global_df[mfilter[:-1]] = {
             "PowerM": pd.DataFrame(),
             "PowerH": pd.DataFrame(),
             "Flux": pd.DataFrame(),
@@ -118,16 +118,16 @@ def main():
             "Uw": pd.DataFrame(),
         }
         if "Z" in args.cooling:
-            global_df[filter[:-1]]["FluxZ"] = pd.DataFrame()
+            global_df[mfilter[:-1]]["FluxZ"] = pd.DataFrame()
         if "H" in args.cooling:
-            global_df[filter[:-1]]["cf"] = pd.DataFrame()
+            global_df[mfilter[:-1]]["cf"] = pd.DataFrame()
         if "thmagel" in args.cfgfile:
-            global_df[filter[:-1]]["statsDispl"] = pd.DataFrame()
-            global_df[filter[:-1]]["statsStress"] = pd.DataFrame()
-            global_df[filter[:-1]]["statsVonMises"] = pd.DataFrame()
-            global_df[filter[:-1]]["statsDisplH"] = pd.DataFrame()
-            global_df[filter[:-1]]["statsStressH"] = pd.DataFrame()
-            global_df[filter[:-1]]["statsVonMisesH"] = pd.DataFrame()
+            global_df[mfilter[:-1]]["statsDispl"] = pd.DataFrame()
+            global_df[mfilter[:-1]]["statsStress"] = pd.DataFrame()
+            global_df[mfilter[:-1]]["statsVonMises"] = pd.DataFrame()
+            global_df[mfilter[:-1]]["statsDisplH"] = pd.DataFrame()
+            global_df[mfilter[:-1]]["statsStressH"] = pd.DataFrame()
+            global_df[mfilter[:-1]]["statsVonMisesH"] = pd.DataFrame()
 
         if "steplist" in values:
             step_i[mname] = 0
@@ -213,19 +213,19 @@ def main():
 
         nstep += 1
         for i, (mname, values) in enumerate(args.mdata.items()):
-            filter = values.get("filter", "")
+            mfilter = values.get("filter", "")
             if "steplist" in values:
                 step_i[mname] += 1
                 if len(values["steplist"]) == step_i[mname]:
                     Commissioning = False
                 else:
-                    targets[f"{filter}I"]["objectif"] = values["steplist"][
+                    targets[f"{mfilter}I"]["objectif"] = values["steplist"][
                         step_i[mname]
                     ]
-                Currents[i] = targets[f"{filter}I"]["objectif"]
+                Currents[i] = targets[f"{mfilter}I"]["objectif"]
             else:
-                targets[f"{filter}I"]["objectif"] -= values["step"]
-                Currents[i] = targets[f"{filter}I"]["objectif"]
+                targets[f"{mfilter}I"]["objectif"] -= values["step"]
+                Currents[i] = targets[f"{mfilter}I"]["objectif"]
                 if Currents[i] <= 0 or nstep >= values["stepmax"]:
                     Commissioning = False
 
