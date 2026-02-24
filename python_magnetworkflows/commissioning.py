@@ -92,7 +92,7 @@ def main():
         dimension=dim,
     )
     if e.isMasterRank():
-        print("commissionning: load cfg", flush=True)
+        print("commissioning: load cfg", flush=True)
 
     if args.debug and e.isMasterRank():
         print(args)

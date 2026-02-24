@@ -315,10 +315,10 @@ def Reynolds(Steam, U: float, Dh: float, L: float) -> float:
     return Re
 
 
-def Prandlt(
+def Prandtl(
     Steam,
 ) -> float:
-    """Compute Prandlt as Pr = mu*cp/k"""
+    """Compute Prandtl as Pr = mu*cp/k"""
     Pr = Steam.mu * Steam.cp * 1.0e3 / Steam.k
     # print(f"Pr={Pr}")
     return Pr
@@ -366,7 +366,7 @@ def hcorrelation(
     )
 
     Re = Reynolds(Steam, nU, Dh, L)
-    Pr = Prandlt(Steam)
+    Pr = Prandtl(Steam)
 
     h = alpha * exp(log(Re) * n) * exp(log(Pr) * m) / Dh
     # print(f"hcorrelation({model}): friction={friction}, h={h}, Pr={Pr}, Re={Re}")

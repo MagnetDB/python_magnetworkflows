@@ -60,7 +60,7 @@ def options(description: str, epilog: str):
     )
     parser.add_argument(
         "--pextra",
-        help="specify head lossses (default: 1)",
+        help="specify head losses (default: 1)",
         type=float,
         default=1,
     )
