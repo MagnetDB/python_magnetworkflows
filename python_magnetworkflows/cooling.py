@@ -199,7 +199,7 @@ def Filonenko(Re: float, Dh: float, f: float, rugosity: float) -> float:
 
 def Colebrook(Re: float, Dh: float, f: float, rugosity: float) -> float:
     val = 1 / sqrt(f)
-    isOK = False
+    isOk = False
     it = 0
     max_err = 1.0e-3
     while it < 10:
@@ -353,7 +353,7 @@ def hcorrelation(
 
     (alpha, n, m) = params
     Steam = steam(Tw, Pw)
-    nU = Uw(
+    nU, _ = Uw(
         Steam,
         dPw,
         Dh,
