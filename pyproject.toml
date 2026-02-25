@@ -99,6 +99,10 @@ ignore_missing_imports = true   # feel++ stubs are not available
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+markers = [
+    "feelpp: mark test as requiring the feelpp Debian system package (deselect with '-m not feelpp')",
+    "slow: mark test as requiring real simulation data and significant runtime (deselect with '-m not slow')",
+]
 filterwarnings = [
     "error",
     "ignore::UserWarning",
