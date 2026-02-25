@@ -1,0 +1,10 @@
+--- a/python_magnetcooling/feelpp.py
++++ b/python_magnetcooling/feelpp.py
+@@ -76,7 +76,7 @@
+         waterflow = targets[target]["waterflow"]
+         pressure = waterflow.pressure(objectif)
+-        dpressure = waterflow.dpressure(objectif)
++        dpressure = waterflow.pressure_drop(objectif)
+
+         Dh = [parameters[p] for p in p_params["Dh"]]
+         Sh = [parameters[p] for p in p_params["Sh"]]

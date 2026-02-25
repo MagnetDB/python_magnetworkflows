@@ -44,6 +44,7 @@ dependencies = [
     # "feelpp-toolboxes-core>=0.102.1",
     # "feelpp-toolboxes-coefficientformpdes>=0.102.1",
     "visidata>=2.6.0",
+    "python-magnetcooling",
 ]
 
 [project.optional-dependencies]

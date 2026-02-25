@@ -15,8 +15,8 @@ import pandas as pd
 from natsort import natsorted
 from tabulate import tabulate
 
-from .waterflow import waterflow
-from .cooling import getDT, getHeatCoeff
+from python_magnetcooling import WaterFlow
+from python_magnetcooling.cooling import getDT, getHeatCoeff
 from .oneconfig import oneconfig
 from .solver import init
 
@@ -585,7 +585,7 @@ def configure_magnet_target(
         "unit": "A",
         "name": f"Intensity_{mfilter}",
         "post": {"type": "Statistics_Intensity", "math": "integrate"},
-        "waterflow": waterflow.flow_params(
+        "waterflow": WaterFlow.from_file(
             values["flow"]
             if os.path.isabs(values["flow"])
             else os.path.join(pwd, values["flow"])
