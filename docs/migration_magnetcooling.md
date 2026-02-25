@@ -27,22 +27,35 @@ Both are superseded by `python_magnetcooling`:
 
 ## 2. Session-by-Session Plan
 
-### Session A — Fix python_magnetcooling bugs
-*Prerequisite: submodule initialized + submodule repo editable*
+Patches were generated against submodule commit
+`a95e1d18c865841df0acc2d9446f35ec30374ad5` and stored in `docs/patches/`.
 
-1. Initialize the submodule:
-   ```bash
-   git submodule update --init python_magnetcooling
-   ```
-2. Apply the 6 bug-fixes described in §3 to `python_magnetcooling/feelpp.py`
-3. Add `name: str = ""` field to `ChannelOutput` and propagate it (see §3.0)
-4. Commit changes inside the submodule, push to `MagnetDB/python_magnetcooling`
-5. Update the submodule reference in python_magnetworkflows: `git add python_magnetcooling && git commit`
+**Session A** (current) — create patch files → **COMPLETE**
+See `docs/patches/README.md` and `docs/patches/0001`–`0006` for the patches.
 
-### Session B — Update python_magnetworkflows
-*Prerequisite: Session A complete, submodule at fixed commit, package installed*
+### Session B — Apply patches to python_magnetcooling *(requires submodule access)*
 
-1. Install package: `pip install -e python_magnetcooling/`
+See `docs/session_B_prompt.md` for the full prompt.
+
+```bash
+git submodule update --init python_magnetcooling
+cd python_magnetcooling
+for p in ../docs/patches/0*.patch; do
+    git apply --ignore-whitespace "$p" && echo "Applied: $p"
+done
+git commit -am "fix: apply python_magnetworkflows integration patches"
+git push
+cd ..
+git add python_magnetcooling
+git commit -m "chore: update python_magnetcooling submodule (integration patches)"
+```
+
+### Session C — Update python_magnetworkflows
+*Prerequisite: Session B complete, submodule at patched commit.*
+
+See `docs/session_C_prompt.md` for the full prompt.
+
+1. `pip install -e python_magnetcooling/`
 2. Create backup copies of local modules (§5)
 3. Update `error.py` (§6)
 4. Update `cli.py` (§7)
@@ -52,36 +65,18 @@ Both are superseded by `python_magnetcooling`:
 
 ---
 
-## 3. Bugs to Fix in python_magnetcooling
+## 3. Bugs Fixed in python_magnetcooling (Session B patches)
 
-These must all be applied during Session A before python_magnetworkflows can use the adapter.
-
-### 3.0  `channel.py` or `thermohydraulics.py` — add `name` to `ChannelOutput`
-
-`ChannelOutput` is a dataclass without a `name` field, but `_update_dict_df` in `feelpp.py` needs to know the channel name. Two-part fix:
-
-**Part A** — Add field to `ChannelOutput` (in `channel.py` or wherever `ChannelOutput` is defined):
-```python
-@dataclass
-class ChannelOutput:
-    name: str = ""          # <-- add this line
-    velocity: float
-    # … rest of fields unchanged
-```
-
-**Part B** — Populate it in `ThermalHydraulicCalculator.compute()` (in `thermohydraulics.py`), after creating each `ChannelOutput`:
-```python
-output.name = channel.geometry.name
-```
-(add immediately after `output = self._compute_channel_uniform(channel, inputs)` or `_compute_channel_axial`)
+Six bugs in `feelpp.py` (submodule commit `a95e1d18`) are patched by the files in
+`docs/patches/`.  Apply them during **Session B** (requires submodule write access).
 
 ---
 
-### 3.1  `feelpp.py` — Bug 1: wrong `WaterFlow` method name
+### 3.1  Patch 0001 — wrong `WaterFlow` method name (`pressure_drop`)
 
-`WaterFlow` (python_magnetcooling) has `pressure_drop()`, not `dpressure()`.
+`WaterFlow` exposes `pressure_drop()`, not `dpressure()`.
 
-**Location:** `_build_input_from_feelpp`, near top of method.
+**Location:** `_build_input_from_feelpp`, line 78.
 
 ```diff
 - dpressure = waterflow.dpressure(objectif)
@@ -90,16 +85,16 @@ output.name = channel.geometry.name
 
 ---
 
-### 3.2  `feelpp.py` — Bug 2: wrong key when TwH[i] is a dict
+### 3.2  Patch 0002 — wrong key when `TwH[i]` is a dict
 
-When `TwH[i]` is a dict it has a `"filename"` key (path to CSV), **not** a `"value"` key. The inlet temperature must be read from the CSV's first row.
+When `TwH[i]` is a dict it has a `"filename"` key (path to a CSV), **not** a `"value"`
+key.  The inlet temperature must be read from the CSV's first row.
 
-**Location:** `_build_input_from_feelpp`, channel-loop body.
+**Location:** `_build_input_from_feelpp`, channel-loop body, line 110.
 
 ```diff
 - Tw_inlet = TwH[i] if not isinstance(TwH[i], dict) else TwH[i]["value"]
 + if isinstance(TwH[i], dict):
-+     import pandas as pd
 +     _csvfile = TwH[i]["filename"].replace("$cfgdir", basedir)
 +     _tw_data = pd.read_csv(_csvfile, sep=",")
 +     Tw_inlet = float(_tw_data["Tw"].iloc[0])
@@ -109,11 +104,12 @@ When `TwH[i]` is a dict it has a `"filename"` key (path to CSV), **not** a `"val
 
 ---
 
-### 3.3  `feelpp.py` — Bug 3: empty `dTwH` not handled
+### 3.3  Patch 0003 — empty `dTwH` list not guarded
 
-When no `dTwH` parameters exist (pattern finds nothing), the extracted list is empty. Must default to zeros.
+When no `dTwH` parameters match the pattern the extracted list is empty, causing an
+index error in the per-channel loop.  Default to zeros.
 
-**Location:** `_build_input_from_feelpp`, just before the per-channel `for` loop (H-mode branch).
+**Location:** `_build_input_from_feelpp`, just after line 93.
 
 ```diff
   dTwH = [parameters[p] for p in p_params["dTwH"]]
@@ -123,59 +119,77 @@ When no `dTwH` parameters exist (pattern finds nothing), the extracted list is e
 
 ---
 
-### 3.4  `feelpp.py` — Bug 4: incomplete axial CSV save in `_extract_parameter_updates`
+### 3.4  Patch 0004 — `targets[target]["pextra"]` raises `KeyError`
 
-The `pass` block where axial distribution data should be saved back to CSV must be completed.
+`"pextra"` is an optional key in the target dict.  Use `.get()` with a safe default.
 
-**Location:** `_extract_parameter_updates`, H-mode branch.
+**Location:** `_build_input_from_feelpp`, `ThermalHydraulicInput` constructor, line 167.
 
 ```diff
-- if channel_out.temp_distribution:
--     # This needs the Tw_dict info to save properly
--     # Implementation depends on how you want to handle this
--     pass
-+ if channel_out.temp_distribution:
-+     TwH_params = p_params.get("TwH", [])
-+     if i < len(TwH_params):
-+         _twh_val = parameters.get(TwH_params[i])
+- extra_pressure_loss=targets[target]["pextra"],
++ extra_pressure_loss=targets[target].get("pextra", 1),
+```
+
+---
+
+### 3.5  Patch 0005 — `channel_out.geometry.name` does not exist
+
+`ChannelOutput` has no `geometry` attribute.  Derive the channel name from
+`p_params["Dh"][i]` (the parameter key is `Dh_<name>`).
+
+**Location:** `_update_dict_df`, top of channel loop, line 265.
+
+```diff
+- cname = channel_out.geometry.name if hasattr(channel_out, "geometry") else f"ch_{i}"
++ dh_params = p_params.get("Dh", [])
++ cname = dh_params[i].replace("Dh_", "") if i < len(dh_params) else f"ch_{i}"
+```
+
+---
+
+### 3.6  Patch 0006 — no CSV write-back for axial modes (gradHZ / gradHZH)
+
+For axial (`gradHZ`/`gradHZH`) cooling modes the per-section temperature profile must
+be written back to the CSV file that FeelPP uses as a boundary-condition table.
+Without this the profile is stale on the next outer iteration.
+
+This patch also adds `parameters: dict` and `basedir: str` to the
+`_extract_parameter_updates` signature (defaulting to `None` / `""`) so the method can
+read and write the CSV files.
+
+**Locations:** lines 57 (call site), 193 (signature), 240 (new write-back block).
+
+```diff
+  # call site (line 57)
+- parameters_update = self._extract_parameter_updates(th_output, p_params, args)
++ parameters_update = self._extract_parameter_updates(th_output, p_params, args, parameters, basedir)
+
+  # signature (line 193)
+  def _extract_parameter_updates(
+      self, th_output, p_params, args,
++     parameters: dict = None,
++     basedir: str = "",
+  ) -> Dict[str, float]:
+
+  # write-back block inserted after line 240 (inside gradHZ/gradHZH branch)
++ if parameters is not None and channel_out.temp_rise_distribution is not None:
++     _TwH_params = p_params.get("TwH", [])
++     _ch_idx = list(th_output.channels).index(channel_out)
++     if _ch_idx < len(_TwH_params):
++         _twh_val = parameters.get(_TwH_params[_ch_idx])
 +         if isinstance(_twh_val, dict):
-+             import pandas as pd
 +             _csvfile = _twh_val["filename"].replace("$cfgdir", basedir)
 +             _tw_data = pd.read_csv(_csvfile, sep=",")
-+             _tw_data["Tw"] = channel_out.temp_distribution
-+             if args.cooling == "gradHZH" and channel_out.heat_coeff_distribution:
++             _tw_inlet = float(_tw_data["Tw"].iloc[0])
++             _tw_z = [_tw_inlet]
++             for _dTw_k in channel_out.temp_rise_distribution:
++                 _tw_z.append(_tw_z[-1] + _dTw_k)
++             _tw_data["Tw"] = _tw_z
++             if cooling_level.has_per_section_h and channel_out.heat_coeff_distribution:
 +                 _tw_data["hw"] = channel_out.heat_coeff_distribution
 +             elif "hw" in _tw_data.columns:
 +                 _tw_data = _tw_data.drop(columns=["hw"])
 +             _tw_data.to_csv(_csvfile, index=False)
-```
-
-Note: `_extract_parameter_updates` needs `parameters` and `basedir` passed in, or the TwH dict info obtained another way. Consider adding `parameters: dict` and `basedir: str` as additional parameters to this method if they are not already available in scope.
-
----
-
-### 3.5  `feelpp.py` — Bug 5: `ChannelOutput` has no `geometry` attribute
-
-After fix §3.0, use `channel_out.name` directly.
-
-**Location:** `_update_dict_df`, top of loop body.
-
-```diff
-- cname = channel_out.geometry.name if hasattr(channel_out, "geometry") else f"ch_{i}"
-+ cname = channel_out.name if channel_out.name else f"ch_{i}"
-```
-
----
-
-### 3.6  `feelpp.py` — Bug 6: wrong key check for `cf` DataFrame
-
-`dict_df[target]` has no key `"H"`. The check for the friction-factor column should test for `"cf"`.
-
-**Location:** `_update_dict_df`, conditional for `cf`.
-
-```diff
-- if "H" in dict_df[target] and hasattr(channel_out, "friction_factor"):
-+ if "cf" in dict_df[target]:
 ```
 
 ---
