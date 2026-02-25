@@ -12,7 +12,8 @@ import json
 
 from .oneconfig import oneconfig
 from .solver import init
-from .cli import options, loadMdata, exportResults
+from .args import options
+from .cli import loadMdata, exportResults
 
 
 def main():
