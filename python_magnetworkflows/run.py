@@ -63,7 +63,7 @@ def main():
         metavar="coolings",
         type=str,
         choices=["mean", "meanH", "grad", "gradH", "gradHZ", "gradHZH"],
-        default=["mean", "meanH", "grad", "gradH", "gradHZ"],
+        default=["mean", "meanH", "grad", "gradH"],
     )
     parser.add_argument(
         "--hcorrelations",
