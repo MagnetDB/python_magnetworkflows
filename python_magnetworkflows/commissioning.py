@@ -13,7 +13,8 @@ import json
 from .oneconfig import oneconfig
 from .solver import init
 from .args import options
-from .cli import loadMdata, exportResults
+from .measures import loadMdata
+from .export import exportResults
 
 
 def main():
