@@ -46,6 +46,18 @@ napoleon_use_ivar = False
 napoleon_use_param = True
 napoleon_use_rtype = True
 
+# -- Autodoc mock imports ----------------------------------------------------
+# feelpp is a system Debian package; python_magnetcooling may not be installed
+# in the docs-build environment.  Mocking prevents import errors during build.
+autodoc_mock_imports = [
+    "feelpp",
+    "feelpp.core",
+    "feelpp.toolboxes",
+    "feelpp.toolboxes.core",
+    "feelpp.toolboxes.cfpdes",
+    "python_magnetcooling",
+]
+
 # -- Autodoc settings --------------------------------------------------------
 autodoc_default_options = {
     "members": True,
