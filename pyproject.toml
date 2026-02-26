@@ -54,6 +54,12 @@ dev = [
     "mypy>=1.10.0",
     "pre-commit>=3.7.0",
 ]
+docs = [
+    "sphinx>=7.0",
+    "sphinx-rtd-theme>=2.0",
+    "myst-parser>=3.0",
+    "sphinx-autobuild>=2024.2.4",
+]
 
 [project.urls]
 Homepage = "https://github.com/MagnetDB/python_magnetworkflows"
@@ -99,6 +105,10 @@ ignore_missing_imports = true   # feel++ stubs are not available
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+markers = [
+    "feelpp: mark test as requiring the feelpp Debian system package (deselect with '-m not feelpp')",
+    "slow: mark test as requiring real simulation data and significant runtime (deselect with '-m not slow')",
+]
 filterwarnings = [
     "error",
     "ignore::UserWarning",
